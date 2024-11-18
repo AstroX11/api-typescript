@@ -12,7 +12,6 @@
 	"dependencies": {
 		"@ffmpeg-installer/ffmpeg": "^1.1.0",
 		"axios": "^1.7.7",
-		"canvas": "2.11.2",
 		"express": "^4.21.1",
 		"file-type": "^19.6.0",
 		"fluent-ffmpeg": "^2.1.3",
