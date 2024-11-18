@@ -1,15 +1,31 @@
 import express from 'express';
 import multer from 'multer';
-// import fs from 'fs';
+import { join, dirname } from 'path';
+import { readFile, existsSync } from 'fs';
+import { fileURLToPath } from 'url';
 import { flipMedia } from './flipmedia.js';
 import { audioToBlackVideo } from './blackVideo.js';
 // import { addTextToTweet } from './faketweet.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 router.get('/hello', (req, res) => {
 	res.json({ message: 'Running' });
+});
+
+router.get('/facts', (req, res) => {
+	const filePath = join(__dirname, 'json', 'facts.json');
+	if (!existsSync(filePath)) return res.status(404).json({ error: 'Facts file not found' });
+	readFile(filePath, 'utf-8', (err, data) => {
+		if (err) return res.status(500).json({ error: 'Failed to read facts file' });
+		const jsonData = JSON.parse(data);
+		const randomIndex = Math.floor(Math.random() * jsonData.facts.length);
+		const randomFact = jsonData.facts[randomIndex];
+
+		res.json({ fact: randomFact });
+	});
 });
 
 router.post('/flip', upload.single('media'), async (req, res) => {
