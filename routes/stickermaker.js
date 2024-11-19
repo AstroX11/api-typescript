@@ -1,145 +1,60 @@
 import fs from 'fs';
-import { randomBytes } from 'crypto';
-import webp from 'node-webpmux';
 import path from 'path';
-import { tmpdir } from 'os';
-import { Buffer } from 'buffer';
+import { Sticker } from 'wa-sticker-formatter';
 import ffmpeg from 'fluent-ffmpeg';
-import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg';
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+import { fileTypeFromBuffer } from 'file-type';
 
-ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
-export const imageToWebp = async media => {
-	const tmpFileOut = path.join(tmpdir(), `${randomBytes(6).toString('hex')}.webp`);
-	const tmpFileIn = path.join(tmpdir(), `${randomBytes(6).toString('hex')}.jpg`);
+const tempDir = path.join(process.cwd(), 'temp');
+if (!fs.existsSync(tempDir)) {
+	fs.mkdirSync(tempDir);
+}
+
+const imageToWebp = async (media, pack, author) => {
+	const tmpFileIn = path.join(tempDir, `${Date.now()}.jpg`);
+	fs.writeFileSync(tmpFileIn, media);
+
+	const sticker = new Sticker(tmpFileIn, { crop: true, keepScale: true, pack, author });
+	const webpBuffer = await sticker.toBuffer();
+
+	fs.unlinkSync(tmpFileIn);
+	return webpBuffer;
+};
+
+const videoToWebp = async (media, pack, author) => {
+	const tmpFileIn = path.join(tempDir, `${Date.now()}.mp4`);
+	const tmpFileOut = path.join(tempDir, `${Date.now()}.webp`);
 
 	fs.writeFileSync(tmpFileIn, media);
 
 	await new Promise((resolve, reject) => {
-		ffmpeg(tmpFileIn)
-			.on('error', reject)
-			.on('end', () => resolve(true))
-			.addOutputOptions(['-vcodec', 'libwebp', '-vf', "scale='min(320,iw)':min'(320,ih)':force_original_aspect_ratio=decrease,fps=15, pad=320:320:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=ffffff [p]; [b][p] paletteuse"])
-			.toFormat('webp')
-			.save(tmpFileOut);
+		ffmpeg(tmpFileIn).on('error', reject).on('end', resolve).addOutputOptions(['-vcodec', 'libwebp', '-vf', 'fps=10,scale=120:-1:flags=lanczos', '-loop', '0', '-quality', '70', '-compression_level', '10', '-an', '-maxrate', '200k', '-bufsize', '200k', '-t', '5']).toFormat('webp').save(tmpFileOut);
 	});
 
-	const buff = fs.readFileSync(tmpFileOut);
-	fs.unlinkSync(tmpFileOut);
+	const sticker = new Sticker(tmpFileOut, { crop: true, keepScale: true, pack, author });
+	const webpBuffer = await sticker.toBuffer();
+
 	fs.unlinkSync(tmpFileIn);
-	return buff;
-};
-
-export const videoToWebp = async media => {
-	const tmpFileOut = path.join(tmpdir(), `${randomBytes(6).toString('hex')}.webp`);
-	const tmpFileIn = path.join(tmpdir(), `${randomBytes(6).toString('hex')}.mp4`);
-
-	fs.writeFileSync(tmpFileIn, media);
-
-	await new Promise((resolve, reject) => {
-		ffmpeg(tmpFileIn)
-			.on('error', reject)
-			.on('end', () => resolve(true))
-			.addOutputOptions([
-				'-vcodec',
-				'libwebp',
-				'-vf',
-				"scale='min(320,iw)':min'(320,ih)':force_original_aspect_ratio=decrease,fps=15, pad=320:320:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=ffffff [p]; [b][p] paletteuse",
-				'-loop',
-				'0',
-				'-ss',
-				'00:00:00',
-				'-t',
-				'00:00:05',
-				'-preset',
-				'default',
-				'-an',
-				'-vsync',
-				'0',
-			])
-			.toFormat('webp')
-			.save(tmpFileOut);
-	});
-
-	const buff = fs.readFileSync(tmpFileOut);
 	fs.unlinkSync(tmpFileOut);
-	fs.unlinkSync(tmpFileIn);
-	return buff;
+
+	return webpBuffer;
 };
 
-export const writeExifImg = async (media, metadata) => {
-	const wMedia = await imageToWebp(media);
-	const tmpFileIn = path.join(tmpdir(), `${randomBytes(6).toString('hex')}.webp`);
-	const tmpFileOut = path.join(tmpdir(), `${randomBytes(6).toString('hex')}.webp`);
-	fs.writeFileSync(tmpFileIn, wMedia);
+export const toSticker = async (buffer, pack, author) => {
+	const fileType = await fileTypeFromBuffer(buffer);
+	const { mime } = fileType;
 
-	if (metadata.packname || metadata.author) {
-		const img = new webp.Image();
-		const json = {
-			'sticker-pack-id': 'https://github.com/AstroX10/xstro-bot',
-			'sticker-pack-name': metadata.packname,
-			'sticker-pack-publisher': metadata.author,
-			'emojis': metadata.categories || [''],
-		};
-		const exifAttr = Buffer.from([0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x41, 0x57, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00]);
-		const jsonBuff = Buffer.from(JSON.stringify(json), 'utf-8');
-		const exif = Buffer.concat([exifAttr, jsonBuff]);
-		exif.writeUIntLE(jsonBuff.length, 14, 4);
-		await img.load(tmpFileIn);
-		fs.unlinkSync(tmpFileIn);
-		img.exif = exif;
-		await img.save(tmpFileOut);
-		return tmpFileOut;
+	let stickerBuffer;
+	console.log(mime);
+	if (mime.startsWith('image/')) {
+		stickerBuffer = await imageToWebp(buffer, pack, author);
+		console.log(stickerBuffer);
+	} else if (mime.startsWith('video/')) {
+		stickerBuffer = await videoToWebp(buffer, pack, author);
+	} else {
+		throw new Error('Only images and videos are supported');
 	}
-};
-
-export const writeExifVid = async (media, metadata) => {
-	const wMedia = await videoToWebp(media);
-	const tmpFileIn = path.join(tmpdir(), `${randomBytes(6).toString('hex')}.webp`);
-	const tmpFileOut = path.join(tmpdir(), `${randomBytes(6).toString('hex')}.webp`);
-	fs.writeFileSync(tmpFileIn, wMedia);
-
-	if (metadata.packname || metadata.author) {
-		const img = new webp.Image();
-		const json = {
-			'sticker-pack-id': 'https://github.com/AstroX10/xstro-bot',
-			'sticker-pack-name': metadata.packname,
-			'sticker-pack-publisher': metadata.author,
-			'emojis': metadata.categories || [''],
-		};
-		const exifAttr = Buffer.from([0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x41, 0x57, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00]);
-		const jsonBuff = Buffer.from(JSON.stringify(json), 'utf-8');
-		const exif = Buffer.concat([exifAttr, jsonBuff]);
-		exif.writeUIntLE(jsonBuff.length, 14, 4);
-		await img.load(tmpFileIn);
-		fs.unlinkSync(tmpFileIn);
-		img.exif = exif;
-		await img.save(tmpFileOut);
-		return tmpFileOut;
-	}
-};
-
-export const writeExifWebp = async (media, metadata) => {
-	const tmpFileIn = path.join(tmpdir(), `${randomBytes(6).toString('hex')}.webp`);
-	const tmpFileOut = path.join(tmpdir(), `${randomBytes(6).toString('hex')}.webp`);
-	fs.writeFileSync(tmpFileIn, media);
-
-	if (metadata.packname || metadata.author) {
-		const img = new webp.Image();
-		const json = {
-			'sticker-pack-id': 'https://github.com/AstroX10/xstro-bot',
-			'sticker-pack-name': metadata.packname,
-			'sticker-pack-publisher': metadata.author,
-			'emojis': metadata.categories || [''],
-		};
-		const exifAttr = Buffer.from([0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x41, 0x57, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00]);
-		const jsonBuff = Buffer.from(JSON.stringify(json), 'utf-8');
-		const exif = Buffer.concat([exifAttr, jsonBuff]);
-		exif.writeUIntLE(jsonBuff.length, 14, 4);
-		await img.load(tmpFileIn);
-		fs.unlinkSync(tmpFileIn);
-		img.exif = exif;
-		await img.save(tmpFileOut);
-		return tmpFileOut;
-	}
+	return stickerBuffer;
 };

@@ -5,6 +5,7 @@ import { readFile, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { flipMedia } from './flipmedia.js';
 import { audioToBlackVideo } from './blackVideo.js';
+import { toSticker } from './stickermaker.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -60,13 +61,23 @@ router.post('/blackvideo', upload.single('audio'), async (req, res) => {
 router.post('/sticker', upload.single('media'), async (req, res) => {
 	try {
 		const { packname = 'Default Pack', author = 'Unknown Author' } = req.body;
-		if (!req.file) return res.status(400).json({ error: 'No media file uploaded' });
+
+		if (!req.file) {
+			return res.status(400).json({ error: 'No media file uploaded' });
+		}
+
 		const mimeType = req.file.mimetype;
-		if (!mimeType.startsWith('image/') && !mimeType.startsWith('video/')) return res.status(400).json({ error: 'Unsupported media type. Only image or video is allowed.' });
+
+		if (!mimeType.startsWith('image/') && !mimeType.startsWith('video/')) {
+			return res.status(400).json({ error: 'Unsupported media type. Only image or video is allowed.' });
+		}
+
 		const stickerBuffer = await toSticker(req.file.buffer, packname, author);
+
 		res.setHeader('Content-Type', 'image/webp');
 		res.send(stickerBuffer);
 	} catch (error) {
+		console.error(error);
 		res.status(500).json({ error: error.message });
 	}
 });
