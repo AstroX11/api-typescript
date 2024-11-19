@@ -5,7 +5,6 @@ import { readFile, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { flipMedia } from './flipmedia.js';
 import { audioToBlackVideo } from './blackVideo.js';
-// import { addTextToTweet } from './faketweet.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -58,26 +57,18 @@ router.post('/blackvideo', upload.single('audio'), async (req, res) => {
 	}
 });
 
-// const generateImage = async (text, name) => {
-// 	const validNames = ['andrew', 'elonmusk', 'messi', 'obama', 'ronaldo', 'trump'];
-// 	if (!validNames.includes(name)) throw new Error('Invalid image name');
-// 	const imagePath = join('./media', `${name}.png`);
-// 	if (!fs.existsSync(imagePath)) throw new Error('Image file not found');
-// 	return await addTextToTweet(text, imagePath);
-// };
-
-// router.post('/meme', async (req, res) => {
-// 	try {
-// 		const { text, name } = req.body;
-// 		if (!text || !name) return res.status(400).json({ error: 'Text and name are required' });
-// 		const imageBuffer = await generateImage(text, name.toLowerCase());
-// 		res.setHeader('Content-Type', 'image/png');
-// 		return res.send(imageBuffer);
-// 	} catch (error) {
-// 		return res.status(400).json({
-// 			error: error.message || 'Error generating image',
-// 		});
-// 	}
-// });
+router.post('/sticker', upload.single('media'), async (req, res) => {
+	try {
+		const { packname = 'Default Pack', author = 'Unknown Author' } = req.body;
+		if (!req.file) return res.status(400).json({ error: 'No media file uploaded' });
+		const mimeType = req.file.mimetype;
+		if (!mimeType.startsWith('image/') && !mimeType.startsWith('video/')) return res.status(400).json({ error: 'Unsupported media type. Only image or video is allowed.' });
+		const stickerBuffer = await toSticker(req.file.buffer, packname, author);
+		res.setHeader('Content-Type', 'image/webp');
+		res.send(stickerBuffer);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
 
 export default router;
