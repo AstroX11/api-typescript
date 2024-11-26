@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { Sticker } from 'wa-sticker-formatter';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { fileTypeFromBuffer } from 'file-type';
+import { Sticker } from 'wa-sticker-formatter';
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
@@ -12,7 +12,15 @@ if (!fs.existsSync(tempDir)) {
 	fs.mkdirSync(tempDir);
 }
 
-const imageToWebp = async (media, pack, author) => {
+/**
+ * Converts an image to a WebP sticker.
+ * 
+ * @param {Buffer} media - Image buffer.
+ * @param {string} pack - Sticker pack name.
+ * @param {string} author - Sticker author name.
+ * @returns {Promise<Buffer>} - Sticker WebP buffer.
+ */
+const img2webp = async (media, pack, author) => {
 	const tmpFileIn = path.join(tempDir, `${Date.now()}.jpg`);
 	fs.writeFileSync(tmpFileIn, media);
 
@@ -23,18 +31,32 @@ const imageToWebp = async (media, pack, author) => {
 	return webpBuffer;
 };
 
-const videoToWebp = async (media, pack, author) => {
+/**
+ * Converts a video to an optimized animated WebP sticker.
+ * 
+ * @param {Buffer} media - Video buffer.
+ * @returns {Promise<Buffer>} - Sticker WebP buffer.
+ */
+const mp42webp = async (media) => {
 	const tmpFileIn = path.join(tempDir, `${Date.now()}.mp4`);
 	const tmpFileOut = path.join(tempDir, `${Date.now()}.webp`);
 
 	fs.writeFileSync(tmpFileIn, media);
 
 	await new Promise((resolve, reject) => {
-		ffmpeg(tmpFileIn).on('error', reject).on('end', resolve).addOutputOptions(['-vcodec', 'libwebp', '-vf', 'fps=10,scale=120:-1:flags=lanczos', '-loop', '0', '-quality', '70', '-compression_level', '10', '-an', '-maxrate', '200k', '-bufsize', '200k', '-t', '5']).toFormat('webp').save(tmpFileOut);
+		ffmpeg(tmpFileIn)
+			.outputOptions([
+				`-vf fps=15,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0`,
+				'-loop 0', // Infinite looping for animated stickers
+				'-pix_fmt yuva420p',
+			])
+			.toFormat('webp')
+			.on('end', resolve)
+			.on('error', reject)
+			.save(tmpFileOut);
 	});
 
-	const sticker = new Sticker(tmpFileOut, { crop: true, keepScale: true, pack, author });
-	const webpBuffer = await sticker.toBuffer();
+	const webpBuffer = fs.readFileSync(tmpFileOut);
 
 	fs.unlinkSync(tmpFileIn);
 	fs.unlinkSync(tmpFileOut);
@@ -42,19 +64,28 @@ const videoToWebp = async (media, pack, author) => {
 	return webpBuffer;
 };
 
+/**
+ * Converts media to a WhatsApp-compatible sticker.
+ * 
+ * @param {Buffer} buffer - Media buffer (image or video).
+ * @param {string} pack - Sticker pack name.
+ * @param {string} author - Sticker author name.
+ * @returns {Promise<Buffer>} - Sticker WebP buffer.
+ */
 export const toSticker = async (buffer, pack, author) => {
 	const fileType = await fileTypeFromBuffer(buffer);
 	const { mime } = fileType;
 
 	let stickerBuffer;
-	console.log(mime);
+	console.log('Detected MIME Type:', mime);
+
 	if (mime.startsWith('image/')) {
-		stickerBuffer = await imageToWebp(buffer, pack, author);
-		console.log(stickerBuffer);
+		stickerBuffer = await img2webp(buffer, pack, author);
 	} else if (mime.startsWith('video/')) {
-		stickerBuffer = await videoToWebp(buffer, pack, author);
+		stickerBuffer = await mp42webp(buffer); // Direct WebP conversion for videos
 	} else {
 		throw new Error('Only images and videos are supported');
 	}
+
 	return stickerBuffer;
 };
