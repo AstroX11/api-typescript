@@ -14,7 +14,7 @@ if (!fs.existsSync(tempDir)) {
 
 /**
  * Converts an image to a WebP sticker.
- * 
+ *
  * @param {Buffer} media - Image buffer.
  * @param {string} pack - Sticker pack name.
  * @param {string} author - Sticker author name.
@@ -33,11 +33,11 @@ const img2webp = async (media, pack, author) => {
 
 /**
  * Converts a video to an optimized animated WebP sticker.
- * 
+ *
  * @param {Buffer} media - Video buffer.
  * @returns {Promise<Buffer>} - Sticker WebP buffer.
  */
-const mp42webp = async (media) => {
+const mp42webp = async media => {
 	const tmpFileIn = path.join(tempDir, `${Date.now()}.mp4`);
 	const tmpFileOut = path.join(tempDir, `${Date.now()}.webp`);
 
@@ -46,6 +46,7 @@ const mp42webp = async (media) => {
 	await new Promise((resolve, reject) => {
 		ffmpeg(tmpFileIn)
 			.outputOptions([
+				`-t 8`, // Limit the video to 8 seconds
 				`-vf fps=15,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0`,
 				'-loop 0', // Infinite looping for animated stickers
 				'-pix_fmt yuva420p',
@@ -66,7 +67,7 @@ const mp42webp = async (media) => {
 
 /**
  * Converts media to a WhatsApp-compatible sticker.
- * 
+ *
  * @param {Buffer} buffer - Media buffer (image or video).
  * @param {string} pack - Sticker pack name.
  * @param {string} author - Sticker author name.
