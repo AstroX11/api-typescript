@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { flipMedia } from './flipmedia.js';
 import { audioToBlackVideo } from './blackVideo.js';
 import { toSticker } from './stickermaker.js';
+import { textToPdf, toImage, attp, attp2, attp3, attp4 } from './utilities.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -78,6 +79,43 @@ router.post('/sticker', upload.single('media'), async (req, res) => {
 		res.send(stickerBuffer);
 	} catch (error) {
 		console.error(error);
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.post('/topdf', async (req, res) => {
+    const { text } = req.body;
+    console.log('Received text:', text); // Debugging
+    try {
+        const pdfPath = await textToPdf(text);
+        console.log('Generated PDF path:', pdfPath); // Debugging
+        if (!existsSync(pdfPath)) {
+            throw new Error('PDF file not found');
+        }
+        res.sendFile(pdfPath);
+    } catch (error) {
+        console.error('Error in /topdf:', error.message); // Debugging
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+router.post('/mptoimg', async (req, res) => {
+	try {
+		const videoBuffer = req.files.video.data;
+		const imagePath = await toImage(videoBuffer);
+		res.sendFile(imagePath);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.post('/attp', async (req, res) => {
+	try {
+		const { text } = req.body;
+		const sticker = await attp(text);
+		res.set('Content-Type', 'image/webp').send(sticker);
+	} catch (error) {
 		res.status(500).json({ error: error.message });
 	}
 });
