@@ -29,6 +29,19 @@ router.get('/facts', (req, res) => {
 	});
 });
 
+router.get('/quotes', (req, res) => {
+	const filePath = join(__dirname, 'json', 'quotes.json');
+	if (!existsSync(filePath)) return res.status(404).json({ error: 'Facts file not found' });
+	readFile(filePath, 'utf-8', (err, data) => {
+		if (err) return res.status(500).json({ error: 'Failed to read facts file' });
+		const jsonData = JSON.parse(data);
+		const randomIndex = Math.floor(Math.random() * jsonData.quotes.length);
+		const randomQuote = jsonData.quotes[randomIndex];
+
+		res.json(randomQuote);
+	});
+});
+
 router.post('/flip', upload.single('media'), async (req, res) => {
 	try {
 		if (!req.file) {
@@ -84,21 +97,20 @@ router.post('/sticker', upload.single('media'), async (req, res) => {
 });
 
 router.post('/topdf', async (req, res) => {
-    const { text } = req.body;
-    console.log('Received text:', text); // Debugging
-    try {
-        const pdfPath = await textToPdf(text);
-        console.log('Generated PDF path:', pdfPath); // Debugging
-        if (!existsSync(pdfPath)) {
-            throw new Error('PDF file not found');
-        }
-        res.sendFile(pdfPath);
-    } catch (error) {
-        console.error('Error in /topdf:', error.message); // Debugging
-        res.status(500).json({ error: error.message });
-    }
+	const { text } = req.body;
+	console.log('Received text:', text); // Debugging
+	try {
+		const pdfPath = await textToPdf(text);
+		console.log('Generated PDF path:', pdfPath); // Debugging
+		if (!existsSync(pdfPath)) {
+			throw new Error('PDF file not found');
+		}
+		res.sendFile(pdfPath);
+	} catch (error) {
+		console.error('Error in /topdf:', error.message); // Debugging
+		res.status(500).json({ error: error.message });
+	}
 });
-
 
 router.post('/mptoimg', async (req, res) => {
 	try {
