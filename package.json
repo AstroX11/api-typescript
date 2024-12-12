@@ -21,6 +21,7 @@
 		"node-fetch": "^3.3.2",
 		"pdfkit": "^0.15.1",
 		"sharp": "^0.33.5",
-		"wa-sticker-formatter": "^4.4.4"
+		"wa-sticker-formatter": "^4.4.4",
+		"youtube-search-api": "^1.2.2"
 	}
 }

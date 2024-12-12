@@ -6,6 +6,7 @@ import apiRouter from './routes/api.js';
 import uploadRouter from './routes/uploadmedia.js';
 import opusRouter from './routes/opusConverter.js';
 import shortenUrl from './routes/bitly.js';
+import youtubeRouter from './routes/youtube.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -14,6 +15,7 @@ app.use(express.json());
 app.use('/api', apiRouter);
 app.use('/api', uploadRouter);
 app.use('/api', opusRouter);
+app.use('/api', youtubeRouter);
 app.get('/api/shorten', shortenUrl);
 app.get('/temp/:filename', (req, res) => {
 	const filePath = join(tmpdir(), req.params.filename);
