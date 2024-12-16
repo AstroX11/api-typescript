@@ -1,114 +1,96 @@
 import express from 'express';
-import multer from 'multer';
-import { join, dirname } from 'path';
-import { readFile, existsSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { flipMedia } from './flipmedia.js';
-import { audioToBlackVideo } from './blackVideo.js';
-import { toSticker } from './stickermaker.js';
-import { textToPdf } from './pdf.js';
+import { textToPdf, facts, quotes, rizz, bible, fancy, removeBg, tinyurl } from '../utils/misc.js';
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
-router.get('/hello', (req, res) => {
-	res.json({ message: 'Running' });
-});
-
-router.get('/facts', (req, res) => {
-	const filePath = join(__dirname, 'json', 'facts.json');
-	if (!existsSync(filePath)) return res.status(404).json({ error: 'Facts file not found' });
-	readFile(filePath, 'utf-8', (err, data) => {
-		if (err) return res.status(500).json({ error: 'Failed to read facts file' });
-		const jsonData = JSON.parse(data);
-		const randomIndex = Math.floor(Math.random() * jsonData.facts.length);
-		const randomFact = jsonData.facts[randomIndex];
-
-		res.json({ fact: randomFact });
-	});
-});
-
-router.get('/quotes', (req, res) => {
-	const filePath = join(__dirname, 'json', 'quotes.json');
-	if (!existsSync(filePath)) return res.status(404).json({ error: 'Facts file not found' });
-	readFile(filePath, 'utf-8', (err, data) => {
-		if (err) return res.status(500).json({ error: 'Failed to read facts file' });
-		const jsonData = JSON.parse(data);
-		const randomIndex = Math.floor(Math.random() * jsonData.quotes.length);
-		const randomQuote = jsonData.quotes[randomIndex];
-
-		res.json(randomQuote);
-	});
-});
-
-router.post('/flip', upload.single('media'), async (req, res) => {
+// GET route for facts
+router.get('/facts', async (req, res) => {
 	try {
-		if (!req.file) {
-			return res.status(400).json({ error: 'No file uploaded' });
-		}
-		const { direction } = req.query;
-		if (!direction) {
-			return res.status(400).json({ error: 'Direction query parameter is required' });
-		}
-		const flippedMedia = await flipMedia(req.file.buffer, direction);
-		res.setHeader('Content-Type', req.file.mimetype);
-		res.send(flippedMedia);
+		const fact = await facts();
+		res.json({ success: true, fact });
 	} catch (err) {
-		console.error(err);
-		res.status(500).json({ error: err.message });
+		res.status(500).json({ success: false, error: err.message });
 	}
 });
 
-router.post('/blackvideo', upload.single('audio'), async (req, res) => {
+// GET route for quotes
+router.get('/quotes', async (req, res) => {
 	try {
-		if (!req.file) return res.status(400).json({ error: 'No audio file uploaded' });
-		const videoBuffer = await audioToBlackVideo(req.file.buffer);
-		res.setHeader('Content-Type', 'video/mp4');
-		res.send(videoBuffer);
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ error: 'Failed to convert audio to video' });
+		const quote = await quotes();
+		res.json({ success: true, quote });
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
 	}
 });
 
-router.post('/sticker', upload.single('media'), async (req, res) => {
+// GET route for rizz
+router.get('/rizz', async (req, res) => {
 	try {
-		const { packname = 'Default Pack', author = 'Unknown Author' } = req.body;
-
-		if (!req.file) {
-			return res.status(400).json({ error: 'No media file uploaded' });
-		}
-
-		const mimeType = req.file.mimetype;
-
-		if (!mimeType.startsWith('image/') && !mimeType.startsWith('video/')) {
-			return res.status(400).json({ error: 'Unsupported media type. Only image or video is allowed.' });
-		}
-
-		const stickerBuffer = await toSticker(req.file.buffer, packname, author);
-
-		res.setHeader('Content-Type', 'image/webp');
-		res.send(stickerBuffer);
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ error: error.message });
+		const text = await rizz();
+		res.json({ success: true, text });
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
 	}
 });
 
-router.post('/topdf', async (req, res) => {
-	const { text } = req.body;
-	console.log('Received text:', text); // Debugging
+// GET route for bible
+router.get('/bible', async (req, res) => {
 	try {
-		const pdfPath = await textToPdf(text);
-		console.log('Generated PDF path:', pdfPath); // Debugging
-		if (!existsSync(pdfPath)) {
-			throw new Error('PDF file not found');
-		}
-		res.sendFile(pdfPath);
-	} catch (error) {
-		console.error('Error in /topdf:', error.message); // Debugging
-		res.status(500).json({ error: error.message });
+		const { verse } = req.query;
+		if (!verse) return res.status(400).json({ success: false, error: 'Verse is required' });
+		const text = await bible(verse);
+		res.json({ success: true, text });
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+});
+
+// GET route for fancy text
+router.get('/fancy', async (req, res) => {
+	try {
+		const { text } = req.query;
+		if (!text) return res.status(400).json({ success: false, error: 'Text is required' });
+		const result = await fancy(text);
+		res.json({ success: true, result });
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+});
+
+// POST route for remove background
+router.post('/removeBg', async (req, res) => {
+	try {
+		if (!req.file) return res.status(400).json({ success: false, error: 'Image file is required' });
+		const buffer = await removeBg(req.file.buffer);
+		res.set('Content-Type', 'image/png');
+		res.send(buffer);
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+});
+
+// GET route for shorten URL using TinyURL
+router.get('/tinyurl', async (req, res) => {
+	try {
+		const { url } = req.query;
+		if (!url) return res.status(400).json({ success: false, error: 'URL is required' });
+		const result = await tinyurl(url);
+		res.json({ success: true, result });
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+});
+
+// POST route for text to PDF
+router.post('/textToPdf', async (req, res) => {
+	try {
+		const { content } = req.body;
+		if (!content) return res.status(400).json({ success: false, error: 'Content is required' });
+		const buffer = await textToPdf(content);
+		res.set('Content-Type', 'application/pdf');
+		res.send(buffer);
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
 	}
 });
 
