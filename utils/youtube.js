@@ -17,8 +17,7 @@ async function getYoutubeAudioFromApi(url) {
 }
 
 export async function youtubePlay(search) {
-	if (search === typeof 'string') throw new Error('Your Search Must Be String!');
-	const res = await getYoutubeLinkFromSearchParameters(search);
+	const res = await getYoutubeLinkFromSearchParameters(search.toString());
 	const data = await getYoutubeAudioFromApi(res);
 	return data;
 }
