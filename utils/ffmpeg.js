@@ -88,7 +88,7 @@ async function flipMedia(inputBuffer, direction) {
 	});
 }
 
-async function convertToWhatsAppOpus(inputBuffer) {
+async function audioToOpus(inputBuffer) {
 	const inputPath = createTempPath('tmp');
 	const outputPath = createTempPath('ogg');
 
@@ -103,4 +103,4 @@ async function convertToWhatsAppOpus(inputBuffer) {
 	return convertedBuffer;
 }
 
-export { audioToBlackVideo, flipMedia, convertToWhatsAppOpus };
+export { audioToBlackVideo, flipMedia, audioToOpus };
