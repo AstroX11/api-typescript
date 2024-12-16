@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
-import { audioToBlackVideo, audioToOpus, flipMedia } from '../utils/ffmpeg';
-import { toSticker } from '../utils/sticker';
+import { audioToBlackVideo, audioToOpus, flipMedia } from '../utils/ffmpeg.js';
+import { toSticker } from '../utils/sticker.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -54,3 +54,5 @@ router.post('/opus', upload.single('audio'), async (req, res) => {
 		res.status(500).json({ error: 'Failed to convert audio to Opus format' });
 	}
 });
+
+export default router;

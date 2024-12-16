@@ -99,4 +99,4 @@ async function tinyurl(url) {
 	return await response.text();
 }
 
-export { shortenUrl, textToPdf, facts, quotes, rizz, bible, fancy, removeBg, tinyurl };
+export { textToPdf, facts, quotes, rizz, bible, fancy, removeBg, tinyurl };
