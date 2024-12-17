@@ -6,7 +6,9 @@ router.get('/play', async (req, res) => {
 	try {
 		const { query } = req;
 		const data = await youtubePlay(query);
-		res.json(data);
+		res.json({
+			url: data,
+		});
 	} catch (error) {
 		res.status(400).json({ error: error.message });
 	}
