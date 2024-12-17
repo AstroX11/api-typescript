@@ -1,5 +1,5 @@
-import ytsr from 'ytsr';
 import axios from 'axios';
+import ytSearch from 'yt-search';
 
 const SaveTube = {
 	qualities: {
@@ -99,17 +99,18 @@ function getRandom(arr) {
 	return arr[Math.floor(Math.random() * arr.length)];
 }
 
-const getYoutubeLinkFromSearchParameters = async (searchQuery, maxResults = 5) => {
+const getYoutubeLinkFromSearch = async searchQuery => {
 	try {
-		const searchResults = await ytsr(searchQuery, { limit: maxResults });
-		if (searchResults.items.length === 0) {
+		const { videos } = await ytSearch(searchQuery);
+		if (!videos.length) {
 			console.warn('No search results found');
 			return null;
 		}
-		const randomResult = getRandom(searchResults.items);
-		console.log('Selected video URL:', randomResult.url);
 
-		return randomResult.url;
+		const randomVideo = videos[Math.floor(Math.random() * videos.length)];
+		console.log('Selected video URL:', randomVideo.url);
+
+		return randomVideo.url;
 	} catch (error) {
 		console.error('Error in YouTube search:', error);
 		throw error;
@@ -117,7 +118,7 @@ const getYoutubeLinkFromSearchParameters = async (searchQuery, maxResults = 5) =
 };
 
 export async function youtubePlay(search) {
-	const res = await getYoutubeLinkFromSearchParameters(search.toString());
+	const res = await getYoutubeLinkFromSearch(search.toString());
 	const data = await savetubemp3(res);
 	return data.link;
 }

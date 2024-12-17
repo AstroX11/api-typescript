@@ -24,6 +24,6 @@
 		"sharp": "^0.33.5",
 		"wa-sticker-formatter": "^4.4.4",
 		"xstro-utils": "^1.0.2",
-		"ytsr": "^3.8.4"
+		"yt-search": "^2.12.1"
 	}
 }
