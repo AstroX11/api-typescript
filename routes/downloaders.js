@@ -1,14 +1,28 @@
 import express from 'express';
-import { youtubePlay } from '../utils/youtube.js';
+import { savetubemp3, savetubemp4 } from '../utils/youtube.js';
 const router = express.Router();
 
-router.get('/play', async (req, res) => {
+router.get('/ytmp3', async (req, res) => {
 	try {
-		const { query } = req;
-		const data = await youtubePlay(query);
-		res.json({
-			url: data,
-		});
+		if (!req.query || !req.query.url) {
+			throw new Error("The 'url' parameter is required.");
+		}
+		const { url } = req.query;
+		const data = await savetubemp3(url);
+		res.json(data);
+	} catch (error) {
+		res.status(400).json({ error: error.message });
+	}
+});
+
+router.get('/ytmp4', async (req, res) => {
+	try {
+		if (!req.query || !req.query.url) {
+			throw new Error("The 'url' parameter is required.");
+		}
+		const { url } = req.query;
+		const data = await savetubemp4(url);
+		res.json(data);
 	} catch (error) {
 		res.status(400).json({ error: error.message });
 	}

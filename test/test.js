@@ -1,3 +1,3 @@
-import { youtubePlay } from '../utils/youtube.js';
+import { savetubemp3 } from '../utils/youtube.js';
 
-console.log(await youtubePlay('just the two of us'));
+console.log(await savetubemp3('https://www.youtube.com/watch?v=k-DOQiLNuig'));
