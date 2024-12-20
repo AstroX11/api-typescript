@@ -3,9 +3,8 @@ import path from 'path';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import FormData from 'form-data';
-import { BitlyClient } from 'bitly';
 import PDFDocument from 'pdfkit';
-import { FileTypeFromBuffer, getBuffer, getJson } from 'xstro-utils';
+import { FileTypeFromBuffer, getJson } from 'xstro-utils';
 
 const factsPath = path.join('./json/facts.json');
 const quotesPath = path.join('./json/quotes.json');
@@ -99,4 +98,38 @@ async function tinyurl(url) {
 	return await response.text();
 }
 
-export { textToPdf, facts, quotes, rizz, bible, fancy, removeBg, tinyurl };
+const solveMath = expression => {
+	if (typeof expression !== 'string') return 'Invalid input: expression must be a string';
+
+	const sanitizedExpression = expression.replace(/[^0-9+\-*/().√^%\s]/g, '').trim();
+	if (!sanitizedExpression || sanitizedExpression.length === 0) return 'Empty expression';
+
+	try {
+		let processedExpression = sanitizedExpression.replace(/√/g, 'Math.sqrt').replace(/\^/g, '**').replace(/\s+/g, '');
+		const safeEval = new Function(`
+            "use strict";
+            try {
+                return String(${processedExpression});
+            } catch (error) {
+                return 'Evaluation error';
+            }
+        `);
+
+		const result = safeEval();
+		if (result === null || result === undefined) return 'Invalid result';
+
+		if (Number.isNaN(Number(result)) || !Number.isFinite(Number(result))) return 'Mathematical error';
+
+		return String(Number(result).toPrecision(15)).replace(/\.?0+$/, '');
+	} catch (error) {
+		return 'Invalid expression';
+	}
+};
+
+const getRandom = array => {
+	if (array.length === 0) return undefined;
+	const randomIndex = Math.floor(Math.random() * array.length);
+	return array[randomIndex];
+};
+
+export { textToPdf, facts, quotes, rizz, bible, fancy, removeBg, tinyurl, solveMath, getRandom };

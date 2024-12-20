@@ -27,7 +27,7 @@
 		"undici": "^7.2.0",
 		"uuid": "^11.0.3",
 		"wa-sticker-formatter": "^4.4.4",
-		"xstro-utils": "^1.0.2",
-		"ytdl-core": "^4.11.5"
+		"ws": "^8.18.0",
+		"xstro-utils": "^1.0.2"
 	}
 }

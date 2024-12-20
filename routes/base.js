@@ -1,5 +1,5 @@
 import express from 'express';
-import { textToPdf, facts, quotes, rizz, bible, fancy, removeBg, tinyurl } from '../utils/misc.js';
+import { textToPdf, facts, quotes, rizz, bible, fancy, removeBg, tinyurl, solveMath } from '../utils/misc.js';
 
 const router = express.Router();
 
@@ -81,14 +81,26 @@ router.get('/tinyurl', async (req, res) => {
 	}
 });
 
-// POST route for text to PDF
-router.post('/textToPdf', async (req, res) => {
+// GET route for text to PDF
+router.get('/textToPdf', async (req, res) => {
 	try {
-		const { content } = req.body;
+		const { content } = req.query;
 		if (!content) return res.status(400).json({ success: false, error: 'Content is required' });
 		const buffer = await textToPdf(content);
 		res.set('Content-Type', 'application/pdf');
 		res.send(buffer);
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+});
+
+// GET route for solve math
+router.get('/solveMath', async (req, res) => {
+	try {
+		const { expression } = req.query;
+		if (!expression) return res.status(400).json({ success: false, error: 'Math expression is required' });
+		const result = solveMath(expression);
+		res.json({ success: true, result });
 	} catch (err) {
 		res.status(500).json({ success: false, error: err.message });
 	}
