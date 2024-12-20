@@ -1,16 +1,21 @@
 import express from 'express';
-import multer from 'multer';
 import { audioToBlackVideo, audioToOpus, flipMedia } from '../utils/ffmpeg.js';
 import { toSticker } from '../utils/sticker.js';
+import { getBuffer } from 'xstro-utils';
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
-router.post('/flip', upload.single('media'), async (req, res) => {
+router.get('/flip', async (req, res) => {
 	try {
-		const { direction } = req.query;
-		const flippedMedia = await flipMedia(req.file.buffer, direction);
-		res.setHeader('Content-Type', req.file.mimetype);
+		const { url, direction } = req.query;
+		if (!url) return res.status(400).json({ error: 'URL is required' });
+
+		const mediaBuffer = await getBuffer(url);
+		const flippedMedia = await flipMedia(mediaBuffer, direction);
+
+		const contentType = url.endsWith('.mp4') ? 'video/mp4' : url.endsWith('.jpg') || url.endsWith('.jpeg') ? 'image/jpeg' : url.endsWith('.png') ? 'image/png' : 'application/octet-stream';
+
+		res.setHeader('Content-Type', contentType);
 		res.send(flippedMedia);
 	} catch (err) {
 		console.error(err);
@@ -18,10 +23,14 @@ router.post('/flip', upload.single('media'), async (req, res) => {
 	}
 });
 
-router.post('/blackvideo', upload.single('audio'), async (req, res) => {
+router.get('/blackvideo', async (req, res) => {
 	try {
-		if (!req.file) return res.status(400).json({ error: 'No audio file uploaded' });
-		const videoBuffer = await audioToBlackVideo(req.file.buffer);
+		const { url } = req.query;
+		if (!url) return res.status(400).json({ error: 'Audio URL is required' });
+
+		const audioBuffer = await getBuffer(url);
+		const videoBuffer = await audioToBlackVideo(audioBuffer);
+
 		res.setHeader('Content-Type', 'video/mp4');
 		res.send(videoBuffer);
 	} catch (error) {
@@ -30,11 +39,14 @@ router.post('/blackvideo', upload.single('audio'), async (req, res) => {
 	}
 });
 
-router.post('/sticker', upload.single('media'), async (req, res) => {
+router.get('/sticker', async (req, res) => {
 	try {
-		const { packname = 'Xstro', author = 'Astro' } = req.body;
-		if (!req.file) return res.status(400).json({ error: 'No media file uploaded' });
-		const stickerBuffer = await toSticker(req.file.buffer, packname, author);
+		const { url, packname = 'Xstro', author = 'Astro' } = req.query;
+		if (!url) return res.status(400).json({ error: 'Media URL is required' });
+
+		const mediaBuffer = await getBuffer(url);
+		const stickerBuffer = await toSticker(mediaBuffer, packname, author);
+
 		res.setHeader('Content-Type', 'image/webp');
 		res.send(stickerBuffer);
 	} catch (error) {
@@ -43,9 +55,14 @@ router.post('/sticker', upload.single('media'), async (req, res) => {
 	}
 });
 
-router.post('/opus', upload.single('audio'), async (req, res) => {
+router.get('/opus', async (req, res) => {
 	try {
-		const opusBuffer = await audioToOpus(req.file.buffer);
+		const { url } = req.query;
+		if (!url) return res.status(400).json({ error: 'Audio URL is required' });
+
+		const audioBuffer = await getBuffer(url);
+		const opusBuffer = await audioToOpus(audioBuffer);
+
 		res.setHeader('Content-Type', 'audio/ogg');
 		res.setHeader('Content-Disposition', 'attachment; filename="converted.ogg"');
 		res.send(opusBuffer);
