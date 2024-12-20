@@ -1,5 +1,5 @@
 import express from 'express';
-import { textToPdf, facts, quotes, rizz, bible, fancy, removeBg, tinyurl, solveMath } from '../utils/misc.js';
+import { textToPdf, facts, quotes, rizz, bible, fancy, removeBg, tinyurl, solveMath, advice } from '../utils/misc.js';
 
 const router = express.Router();
 
@@ -18,6 +18,16 @@ router.get('/quotes', async (req, res) => {
 	try {
 		const quote = await quotes();
 		res.json({ success: true, quote });
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+});
+
+// GET route for advice
+router.get('/advice', async (req, res) => {
+	try {
+		const data = await advice();
+		res.json({ success: true, advice: data.quote });
 	} catch (err) {
 		res.status(500).json({ success: false, error: err.message });
 	}

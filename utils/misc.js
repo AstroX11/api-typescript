@@ -8,6 +8,7 @@ import { FileTypeFromBuffer, getJson } from 'xstro-utils';
 
 const factsPath = path.join('./json/facts.json');
 const quotesPath = path.join('./json/quotes.json');
+const advicePath = path.join('./json/advice.json');
 
 async function readJsonFile(filePath) {
 	return new Promise((resolve, reject) => {
@@ -49,6 +50,11 @@ async function quotes() {
 	return data.quotes[randomIndex];
 }
 
+async function advice() {
+	const data = await readJsonFile(advicePath);
+	return getRandom(data);
+}
+
 async function rizz() {
 	const data = await getJson('https://rizzapi.vercel.app/random');
 	return data.text;
@@ -80,32 +86,49 @@ async function removeBg(buffer) {
 	const inputPath = path.join(process.cwd(), `temp_image.${type}`);
 	fs.writeFileSync(inputPath, buffer);
 	formData.append('size', 'auto');
-	formData.append('image_file', fs.createReadStream(inputPath), path.basename(inputPath));
-	const { status, data } = await axios.post('https://api.remove.bg/v1.0/removebg', formData, {
-		responseType: 'arraybuffer',
-		headers: {
-			...formData.getHeaders(),
-			'X-Api-Key': 'FjyTadatkyWixWGWUCUDTF7J',
+	formData.append(
+		'image_file',
+		fs.createReadStream(inputPath),
+		path.basename(inputPath),
+	);
+	const { status, data } = await axios.post(
+		'https://api.remove.bg/v1.0/removebg',
+		formData,
+		{
+			responseType: 'arraybuffer',
+			headers: {
+				...formData.getHeaders(),
+				'X-Api-Key': 'FjyTadatkyWixWGWUCUDTF7J',
+			},
+			encoding: null,
 		},
-		encoding: null,
-	});
+	);
 	fs.unlinkSync(inputPath);
 	return data;
 }
 
 async function tinyurl(url) {
-	const response = await fetch(`https://tinyurl.com/api-create.php?url=${url}`);
+	const response = await fetch(
+		`https://tinyurl.com/api-create.php?url=${url}`,
+	);
 	return await response.text();
 }
 
 const solveMath = expression => {
-	if (typeof expression !== 'string') return 'Invalid input: expression must be a string';
+	if (typeof expression !== 'string')
+		return 'Invalid input: expression must be a string';
 
-	const sanitizedExpression = expression.replace(/[^0-9+\-*/().√^%\s]/g, '').trim();
-	if (!sanitizedExpression || sanitizedExpression.length === 0) return 'Empty expression';
+	const sanitizedExpression = expression
+		.replace(/[^0-9+\-*/().√^%\s]/g, '')
+		.trim();
+	if (!sanitizedExpression || sanitizedExpression.length === 0)
+		return 'Empty expression';
 
 	try {
-		let processedExpression = sanitizedExpression.replace(/√/g, 'Math.sqrt').replace(/\^/g, '**').replace(/\s+/g, '');
+		let processedExpression = sanitizedExpression
+			.replace(/√/g, 'Math.sqrt')
+			.replace(/\^/g, '**')
+			.replace(/\s+/g, '');
 		const safeEval = new Function(`
             "use strict";
             try {
@@ -118,7 +141,8 @@ const solveMath = expression => {
 		const result = safeEval();
 		if (result === null || result === undefined) return 'Invalid result';
 
-		if (Number.isNaN(Number(result)) || !Number.isFinite(Number(result))) return 'Mathematical error';
+		if (Number.isNaN(Number(result)) || !Number.isFinite(Number(result)))
+			return 'Mathematical error';
 
 		return String(Number(result).toPrecision(15)).replace(/\.?0+$/, '');
 	} catch (error) {
@@ -132,4 +156,16 @@ const getRandom = array => {
 	return array[randomIndex];
 };
 
-export { textToPdf, facts, quotes, rizz, bible, fancy, removeBg, tinyurl, solveMath, getRandom };
+export {
+	textToPdf,
+	facts,
+	quotes,
+	advice,
+	rizz,
+	bible,
+	fancy,
+	removeBg,
+	tinyurl,
+	solveMath,
+	getRandom,
+};
