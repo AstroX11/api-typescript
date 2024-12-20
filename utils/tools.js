@@ -71,52 +71,6 @@ async function ttp(text) {
 	}
 }
 
-async function attp(text) {
-	try {
-		const getidResponse = await fetch('https://id.bloggif.com/text');
-		const getidText = await getidResponse.text();
-		const id = cheerio.load(getidText)('#content > form').attr('action');
-		const options = {
-			method: 'POST',
-			headers: {
-				'content-type': 'application/x-www-form-urlencoded',
-				'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
-			},
-			body: new URLSearchParams({
-				target: 1,
-				text: text,
-				glitter_id: Math.floor(Math.random() * 2821),
-				font_id: 'lucida_sans_demibold_roman',
-				size: 100,
-				bg_color: 'FFFFFF',
-				transparent: 1,
-				border_color: '000000',
-				border_width: 2,
-				shade_color: '000000',
-				shade_width: 1,
-				angle: 0,
-				text_align: 'center',
-			}),
-		};
-		const response = await fetch(`https://id.bloggif.com${id}`, options);
-		const bodyText = await response.text();
-		const $ = cheerio.load(bodyText);
-		const entries = [];
-		$('div.box.center a').each((index, element) => {
-			const title = $(element).text();
-			const url = $(element).attr('href');
-			entries.push({
-				title,
-				url: 'https://id.bloggif.com' + url,
-			});
-		});
-
-		return entries;
-	} catch (error) {
-		console.error('Error:', error);
-		return [];
-	}
-}
 
 async function githubstalk(user) {
 	return new Promise((resolve, reject) => {
@@ -147,4 +101,4 @@ async function githubstalk(user) {
 	});
 }
 
-export { obfus, ttp, attp, githubstalk };
+export { obfus, ttp, githubstalk };
