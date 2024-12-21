@@ -20,18 +20,42 @@ function cleanUp(paths = []) {
 }
 
 async function audioToBlackVideo(input, options = {}) {
-	const { width = 1920, height = 1080, backgroundColor = 'black', fps = 30 } = options;
+	const {
+		width = 1920,
+		height = 1080,
+		backgroundColor = 'black',
+		fps = 30,
+	} = options;
 
 	const audioInputPath = createTempPath('mp3');
 	const videoOutputPath = createTempPath('mp4');
-	const inputPath = input instanceof Buffer ? (writeFileSync(audioInputPath, input), audioInputPath) : input;
+	const inputPath =
+		input instanceof Buffer
+			? (writeFileSync(audioInputPath, input), audioInputPath)
+			: input;
 
 	return new Promise((resolve, reject) => {
 		ffmpeg()
 			.input(`color=${backgroundColor}:s=${width}x${height}:r=${fps}`)
 			.inputOptions(['-f', 'lavfi'])
 			.input(inputPath)
-			.outputOptions(['-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-c:a', 'aac', '-b:a', '128k', '-map', '0:v', '-map', '1:a', '-shortest'])
+			.outputOptions([
+				'-c:v',
+				'libx264',
+				'-preset',
+				'ultrafast',
+				'-crf',
+				'23',
+				'-c:a',
+				'aac',
+				'-b:a',
+				'128k',
+				'-map',
+				'0:v',
+				'-map',
+				'1:a',
+				'-shortest',
+			])
 			.output(videoOutputPath)
 			.on('end', () => {
 				const videoBuffer = readFileSync(videoOutputPath);
@@ -46,10 +70,12 @@ async function audioToBlackVideo(input, options = {}) {
 	});
 }
 
-async function flipMedia(inputBuffer, direction) {
+async function flipMedia(inputBuffer, direction = 'horizontal') {
 	const validDirections = ['left', 'right', 'vertical', 'horizontal'];
-	if (!validDirections.includes(direction.toLowerCase())) {
-		throw new Error('Invalid direction. Use: left, right, vertical, or horizontal');
+	if (!validDirections.includes(direction?.toLowerCase())) {
+		throw new Error(
+			'Invalid direction. Use: left, right, vertical, or horizontal',
+		);
 	}
 
 	const type = await fileTypeFromBuffer(inputBuffer);
@@ -57,35 +83,54 @@ async function flipMedia(inputBuffer, direction) {
 		throw new Error('Invalid input: must be an image or video file.');
 	}
 
-	const inputPath = createTempPath(type.ext);
-	const outputPath = createTempPath(type.ext);
+	// Create unique temporary file paths
+	const inputPath = `/tmp/media-temp/input_${Date.now()}.${type.ext}`;
+	const outputPath = `/tmp/media-temp/output_${Date.now()}.${type.ext}`;
 
-	writeFileSync(inputPath, inputBuffer);
+	try {
+		// Ensure the temp directory exists
+		mkdirSync('/tmp/media-temp', { recursive: true });
 
-	let command = ffmpeg(inputPath);
-	if (direction.toLowerCase() === 'left') {
-		command = command.videoFilters('transpose=2');
-	} else if (direction.toLowerCase() === 'right') {
-		command = command.videoFilters('transpose=1');
-	} else if (direction.toLowerCase() === 'vertical') {
-		command = command.videoFilters('vflip');
-	} else if (direction.toLowerCase() === 'horizontal') {
-		command = command.videoFilters('hflip');
+		// Write input buffer to file
+		writeFileSync(inputPath, inputBuffer);
+
+		// Process the media file
+		const command = ffmpeg(inputPath);
+
+		switch (direction.toLowerCase()) {
+			case 'left':
+				command.videoFilters('transpose=2');
+				break;
+			case 'right':
+				command.videoFilters('transpose=1');
+				break;
+			case 'vertical':
+				command.videoFilters('vflip');
+				break;
+			case 'horizontal':
+				command.videoFilters('hflip');
+				break;
+		}
+
+		// Process the file
+		await new Promise((resolve, reject) => {
+			command.on('end', resolve).on('error', reject).save(outputPath);
+		});
+
+		// Read the processed file
+		const outputBuffer = readFileSync(outputPath);
+
+		return outputBuffer;
+	} catch (error) {
+		throw new Error(`FFmpeg error: ${error.message}`);
+	} finally {
+		try {
+			if (existsSync(inputPath)) unlinkSync(inputPath);
+			if (existsSync(outputPath)) unlinkSync(outputPath);
+		} catch (cleanupError) {
+			console.error('Cleanup error:', cleanupError);
+		}
 	}
-
-	return new Promise((resolve, reject) => {
-		command
-			.on('end', () => {
-				const outputBuffer = readFileSync(outputPath);
-				cleanUp([inputPath, outputPath]);
-				resolve(outputBuffer);
-			})
-			.on('error', err => {
-				cleanUp([inputPath, outputPath]);
-				reject(new Error(`FFmpeg error: ${err.message}`));
-			})
-			.save(outputPath);
-	});
 }
 
 async function audioToOpus(inputBuffer) {
@@ -95,7 +140,15 @@ async function audioToOpus(inputBuffer) {
 	writeFileSync(inputPath, inputBuffer);
 
 	await new Promise((resolve, reject) => {
-		ffmpeg(inputPath).toFormat('opus').audioCodec('libopus').audioChannels(1).audioFrequency(16000).outputOptions(['-b:a 24k', '-vbr on', '-compression_level 10']).on('error', reject).on('end', resolve).save(outputPath);
+		ffmpeg(inputPath)
+			.toFormat('opus')
+			.audioCodec('libopus')
+			.audioChannels(1)
+			.audioFrequency(16000)
+			.outputOptions(['-b:a 24k', '-vbr on', '-compression_level 10'])
+			.on('error', reject)
+			.on('end', resolve)
+			.save(outputPath);
 	});
 
 	const convertedBuffer = readFileSync(outputPath);

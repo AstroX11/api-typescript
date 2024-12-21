@@ -2,9 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import FormData from 'form-data';
 import PDFDocument from 'pdfkit';
-import { FileTypeFromBuffer, getJson } from 'xstro-utils';
+import {  getJson } from 'xstro-utils';
 
 const factsPath = path.join('./json/facts.json');
 const quotesPath = path.join('./json/quotes.json');
@@ -78,33 +77,6 @@ async function fancy(text) {
 		});
 	});
 	return results.map(item => item.result).join('\n');
-}
-
-async function removeBg(buffer) {
-	const formData = new FormData();
-	const type = await FileTypeFromBuffer(buffer);
-	const inputPath = path.join(process.cwd(), `temp_image.${type}`);
-	fs.writeFileSync(inputPath, buffer);
-	formData.append('size', 'auto');
-	formData.append(
-		'image_file',
-		fs.createReadStream(inputPath),
-		path.basename(inputPath),
-	);
-	const { status, data } = await axios.post(
-		'https://api.remove.bg/v1.0/removebg',
-		formData,
-		{
-			responseType: 'arraybuffer',
-			headers: {
-				...formData.getHeaders(),
-				'X-Api-Key': 'FjyTadatkyWixWGWUCUDTF7J',
-			},
-			encoding: null,
-		},
-	);
-	fs.unlinkSync(inputPath);
-	return data;
 }
 
 async function tinyurl(url) {

@@ -67,18 +67,6 @@ router.get('/fancy', async (req, res) => {
 	}
 });
 
-// POST route for remove background
-router.post('/removeBg', async (req, res) => {
-	try {
-		if (!req.file) return res.status(400).json({ success: false, error: 'Image file is required' });
-		const buffer = await removeBg(req.file.buffer);
-		res.set('Content-Type', 'image/png');
-		res.send(buffer);
-	} catch (err) {
-		res.status(500).json({ success: false, error: err.message });
-	}
-});
-
 // GET route for shorten URL using TinyURL
 router.get('/tinyurl', async (req, res) => {
 	try {
