@@ -136,7 +136,6 @@ export {
 	rizz,
 	bible,
 	fancy,
-	removeBg,
 	tinyurl,
 	solveMath,
 	getRandom,
