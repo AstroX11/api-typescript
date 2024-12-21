@@ -3,7 +3,8 @@ import path from 'path';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import PDFDocument from 'pdfkit';
-import {  getJson } from 'xstro-utils';
+import { getJson } from 'xstro-utils';
+import { translate } from '@vitalets/google-translate-api';
 
 const factsPath = path.join('./json/facts.json');
 const quotesPath = path.join('./json/quotes.json');
@@ -128,6 +129,14 @@ const getRandom = array => {
 	return array[randomIndex];
 };
 
+const trt = async (sentence, targetLang) => {
+	try {
+		const result = await translate(sentence, { to: targetLang });
+		return result.text;
+	} catch (error) {
+		throw new Error(`Translation failed: ${error.message}`);
+	}
+};
 export {
 	textToPdf,
 	facts,
@@ -139,4 +148,5 @@ export {
 	tinyurl,
 	solveMath,
 	getRandom,
+	trt
 };

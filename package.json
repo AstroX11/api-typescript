@@ -11,6 +11,7 @@
 	"license": "MIT",
 	"dependencies": {
 		"@ffmpeg-installer/ffmpeg": "^1.1.0",
+		"@vitalets/google-translate-api": "^9.2.0",
 		"axios": "^1.7.7",
 		"bitly": "^7.1.2",
 		"cheerio": "^1.0.0",

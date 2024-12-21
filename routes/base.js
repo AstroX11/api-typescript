@@ -1,5 +1,5 @@
 import express from 'express';
-import { textToPdf, facts, quotes, rizz, bible, fancy, tinyurl, solveMath, advice } from '../utils/misc.js';
+import { textToPdf, facts, quotes, rizz, bible, fancy, tinyurl, solveMath, advice, trt } from '../utils/misc.js';
 
 const router = express.Router();
 
@@ -98,6 +98,19 @@ router.get('/solveMath', async (req, res) => {
 		const { expression } = req.query;
 		if (!expression) return res.status(400).json({ success: false, error: 'Math expression is required' });
 		const result = solveMath(expression);
+		res.json({ success: true, result });
+	} catch (err) {
+		res.status(500).json({ success: false, error: err.message });
+	}
+});
+
+// GET route for translate
+router.get('/translate', async (req, res) => {
+	try {
+		const { text, to } = req.query;
+		if (!text) return res.status(400).json({ success: false, error: 'Text is required' });
+		if (!to) return res.status(400).json({ success: false, error: 'Target language is required' });
+		const result = await trt(text, to);
 		res.json({ success: true, result });
 	} catch (err) {
 		res.status(500).json({ success: false, error: err.message });
