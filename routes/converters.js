@@ -10,11 +10,11 @@ const router = express.Router();
 
 router.get('/photo', async (req, res) => {
 	try {
-		const imageUrl = req.query.url;
+		const { url } = req.query;
 		if (!imageUrl) {
 			return res.status(400).send('No image URL provided.');
 		}
-		const webpBuffer = await getBuffer(imageUrl);
+		const webpBuffer = await getBuffer(url);
 		const jpgBuffer = await convertWebPToJPGBuffer(webpBuffer);
 
 		res.set('Content-Type', 'image/jpeg');

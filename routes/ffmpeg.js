@@ -1,5 +1,5 @@
 import express from 'express';
-import { audioToBlackVideo, audioToOpus, flipMedia } from '../utils/ffmpeg.js';
+import { audioToBlackVideo, audioToMp3, flipMedia } from '../utils/ffmpeg.js';
 import { toSticker } from '../utils/sticker.js';
 import { getBuffer } from 'xstro-utils';
 
@@ -63,25 +63,25 @@ router.get('/sticker', async (req, res) => {
 	}
 });
 
-router.get('/opus', async (req, res) => {
+router.get('/mp3', async (req, res) => {
 	try {
 		const { url } = req.query;
 		if (!url)
 			return res.status(400).json({ error: 'Audio URL is required' });
 
 		const audioBuffer = await getBuffer(url);
-		const opusBuffer = await audioToOpus(audioBuffer);
+		const mp3Buffer = await audioToMp3(audioBuffer);
 
-		res.setHeader('Content-Type', 'audio/ogg');
+		res.setHeader('Content-Type', 'audio/mpeg');
 		res.setHeader(
 			'Content-Disposition',
-			'attachment; filename="converted.ogg"',
+			'attachment; filename="audio.mp3"',
 		);
-		res.send(opusBuffer);
+		res.send(mp3Buffer);
 	} catch (error) {
 		console.error('Conversion error:', error);
 		res.status(500).json({
-			error: 'Failed to convert audio to Opus format',
+			error: 'Failed to convert audio to MP3 format',
 		});
 	}
 });

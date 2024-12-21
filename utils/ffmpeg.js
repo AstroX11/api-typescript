@@ -133,19 +133,19 @@ async function flipMedia(inputBuffer, direction = 'horizontal') {
 	}
 }
 
-async function audioToOpus(inputBuffer) {
+async function audioToMp3(inputBuffer) {
 	const inputPath = createTempPath('tmp');
-	const outputPath = createTempPath('ogg');
+	const outputPath = createTempPath('mp3');
 
 	writeFileSync(inputPath, inputBuffer);
 
 	await new Promise((resolve, reject) => {
 		ffmpeg(inputPath)
-			.toFormat('opus')
-			.audioCodec('libopus')
-			.audioChannels(1)
-			.audioFrequency(16000)
-			.outputOptions(['-b:a 24k', '-vbr on', '-compression_level 10'])
+			.toFormat('mp3')  // Convert to MP3 format
+			.audioCodec('libmp3lame')  // Use MP3 codec
+			.audioChannels(2)  // Stereo output
+			.audioFrequency(44100)  // Standard audio frequency for MP3
+			.outputOptions(['-b:a 192k'])  // Set bit rate for MP3
 			.on('error', reject)
 			.on('end', resolve)
 			.save(outputPath);
@@ -156,4 +156,4 @@ async function audioToOpus(inputBuffer) {
 	return convertedBuffer;
 }
 
-export { audioToBlackVideo, flipMedia, audioToOpus };
+export { audioToBlackVideo, flipMedia, audioToMp3 };
