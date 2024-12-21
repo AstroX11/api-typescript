@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Google, stickersearch, wallpaper } from '../utils/search.js';
+import { Google, stickersearch, wallpaper, wikipedia } from '../utils/search.js';
 
 const router = Router();
 
@@ -42,6 +42,21 @@ router.get('/wallpaper', async (req, res) => {
 				.json({ error: 'Query parameter is required.' });
 		}
 		const results = await wallpaper(query);
+		res.json(results);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/wikipedia', async (req, res) => {
+	try {
+		const { query } = req.query;
+		if (!query) {
+			return res
+				.status(400)
+				.json({ error: 'Query parameter is required.' });
+		}
+		const results = await wikipedia(query);
 		res.json(results);
 	} catch (error) {
 		res.status(500).json({ error: error.message });
