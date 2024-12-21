@@ -1,5 +1,5 @@
 import express from 'express';
-import { textToPdf, facts, quotes, rizz, bible, fancy, removeBg, tinyurl, solveMath, advice } from '../utils/misc.js';
+import { textToPdf, facts, quotes, rizz, bible, fancy, tinyurl, solveMath, advice } from '../utils/misc.js';
 
 const router = express.Router();
 
