@@ -1,19 +1,20 @@
 // routes/image.js
 import express from 'express';
 import { convertWebPToJPGBuffer } from '../utils/convert.js';
+import { getBuffer } from 'xstro-utils';
 const router = express.Router();
 
 /**
  * API route to convert WebP image to JPG.
  */
-router.post('/photo', async (req, res) => {
-	try {
-		if (!req.files || !req.files.image) {
-			return res.status(400).send('No image file uploaded.');
-		}
 
-		const webpBuffer = req.files.image.data;
-        console.log(webpBuffer)
+router.get('/photo', async (req, res) => {
+	try {
+		const imageUrl = req.query.url;
+		if (!imageUrl) {
+			return res.status(400).send('No image URL provided.');
+		}
+		const webpBuffer = await getBuffer(imageUrl);
 		const jpgBuffer = await convertWebPToJPGBuffer(webpBuffer);
 
 		res.set('Content-Type', 'image/jpeg');
