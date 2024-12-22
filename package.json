@@ -14,6 +14,7 @@
 		"@vitalets/google-translate-api": "^9.2.0",
 		"axios": "^1.7.7",
 		"bitly": "^7.1.2",
+		"canvas": "^2.11.2",
 		"cheerio": "^1.0.0",
 		"express": "^4.21.1",
 		"fake-useragent": "^1.0.1",
@@ -30,5 +31,12 @@
 		"wa-sticker-formatter": "^4.4.4",
 		"ws": "^8.18.0",
 		"xstro-utils": "^1.0.2"
+	},
+	"resolutions": {
+		"rimraf": "^4.0.0",
+		"npmlog": "^6.0.0",
+		"glob": "^9.0.0",
+		"gauge": "^4.0.0",
+		"are-we-there-yet": "^3.0.0"
 	}
 }
