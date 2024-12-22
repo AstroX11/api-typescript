@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
 	Bing,
+	GizChinaNews,
 	Google,
 	mediafire,
 	stickersearch,
@@ -95,6 +96,15 @@ router.get('/bing', async (req, res) => {
 		}
 		const response = await Bing(query);
 		res.json({ result: response });
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/news', async (req, res) => {
+	try {
+		const response = await GizChinaNews();
+		res.json(response);
 	} catch (error) {
 		res.status(500).json({ error: error.message });
 	}
