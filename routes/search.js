@@ -101,7 +101,7 @@ router.get('/bing', async (req, res) => {
 	}
 });
 
-router.get('/news', async (req, res) => {
+router.get('/technews', async (req, res) => {
 	try {
 		const response = await GizChinaNews();
 		res.json(response);
