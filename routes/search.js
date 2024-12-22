@@ -1,5 +1,12 @@
 import { Router } from 'express';
-import { Google, mediafire, stickersearch, wallpaper, wikipedia } from '../utils/search.js';
+import {
+	Bing,
+	Google,
+	mediafire,
+	stickersearch,
+	wallpaper,
+	wikipedia,
+} from '../utils/search.js';
 
 const router = Router();
 
@@ -73,6 +80,21 @@ router.get('/mediafire', async (req, res) => {
 		}
 		const results = await mediafire(url);
 		res.json(results);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/bing', async (req, res) => {
+	try {
+		const { query } = req.query;
+		if (!query) {
+			return res
+				.status(400)
+				.json({ error: 'Query parameter is required.' });
+		}
+		const response = await Bing(query);
+		res.json({ result: response });
 	} catch (error) {
 		res.status(500).json({ error: error.message });
 	}

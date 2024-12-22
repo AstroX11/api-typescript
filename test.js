@@ -1,24 +1,33 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-async function mediafire(url) {
-	let query = await axios.get(url);
-	let cher = cheerio.load(query.data);
-	let hasil = [];
-	let link = cher('a#downloadButton').attr('href');
-	let size = cher('a#downloadButton')
-		.text()
-		.replace('Download', '')
-		.replace('(', '')
-		.replace(')', '')
-		.replace('\n', '')
-		.replace('\n', '')
-		.replace(' ', '');
-	let seplit = link.split('/');
-	let author = 'Xasena';
-	let nama = seplit[5];
-	let mime = nama.split('.');
-	mime = mime[1];
-	hasil.push({ author, nama, mime, size, link });
-	return hasil;
+async function Bing(query) {
+	try {
+		const response = await axios.get('https://www.bing.com/search?q=' + encodeURIComponent(query), {
+			headers: {
+				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+			}
+		});
+		const $ = cheerio.load(response.data);
+		
+		const results = [];
+		$('#b_results > li.b_algo').each((i, element) => {
+			if (i < 10) {  // Limit to 10 results
+				const titleElement = $(element).find('h2 a');
+				const description = $(element).find('.b_caption p').first().text().trim();
+				
+				results.push({
+					title: titleElement.text().trim(),
+					description: description,
+					link: titleElement.attr('href')
+				});
+			}
+		});
+		
+		return results;
+	} catch (error) {
+		console.error('Error searching Bing:', error);
+		return [];
+	}
 }
+console.log(await Bing('Node Js'))
