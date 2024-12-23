@@ -208,3 +208,143 @@ export async function GizChinaNews() {
 		return [];
 	}
 }
+
+export async function Yahoo(query) {
+	try {
+		const searchUrl = `https://search.yahoo.com/search?p=${encodeURIComponent(
+			query,
+		)}`;
+		const response = await axios.get(searchUrl);
+		const $ = cheerio.load(response.data);
+
+		const results = [];
+		$('.algo').each((i, element) => {
+			results.push({
+				title: $(element).find('h3').text().trim(),
+				description: $(element).find('.compText').text().trim(),
+				url: $(element).find('a').attr('href'),
+			});
+		});
+
+		return results;
+	} catch (error) {
+		console.error('Error scraping Yahoo:', error);
+		return [];
+	}
+}
+
+async function fetchForexData(url) {
+	try {
+		const response = await axios.get(url, {
+			headers: {
+				'User-Agent':
+					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0 Safari/537.36',
+			},
+		});
+		const html = response.data;
+		const $ = cheerio.load(html);
+
+		// Extract header fields
+		const headers = [];
+		$('.upperLine-MSg2GmPp span').each((_, element) => {
+			headers.push($(element).text().trim());
+		});
+
+		// Extract row data
+		const rowsData = [];
+		$(
+			'tr.row-RdUXZpkv.listRow, tr.row-RdUXZpkv.listRow.focusedClass.cursor',
+		).each((_, row) => {
+			const rowData = {};
+
+			// Extract ticker symbol, description, and URL
+			const tickerCell = $(row).find('.tickerCell-GrtoTeat');
+			rowData['Symbol'] = tickerCell
+				.find('a.tickerNameBox-GrtoTeat')
+				.text()
+				.trim();
+			rowData['Description'] = tickerCell
+				.find('sup.tickerDescription-GrtoTeat')
+				.text()
+				.trim();
+
+			// Extract additional fields from row cells
+			$(row)
+				.find('td.cell-RLhfr_y4')
+				.each((index, cell) => {
+					const headerName =
+						headers[index] || `Column${index + 1}`; // Fallback for missing headers
+					rowData[headerName] = $(cell).text().trim();
+				});
+
+			rowsData.push(rowData);
+		});
+
+		// Rename columns
+		const data = rowsData.map(row => ({
+			Symbol: row.Symbol,
+			Pair: row.Description,
+			Price: row.Column2,
+			'Change %': row.Column3,
+			Change: row.Column4,
+			Bid: row.Column5,
+			Ask: row.Column6,
+			High: row.Column7,
+			Low: row.Column8,
+			Rating: row.Column9,
+		}));
+
+		return data;
+	} catch (error) {
+		console.error('Error fetching data:', error);
+		throw error;
+	}
+}
+
+export async function ForexMajor() {
+	return await fetchForexData(
+		'https://www.tradingview.com/markets/currencies/rates-major/',
+	);
+}
+
+export async function ForexMinor() {
+	return await fetchForexData(
+		'https://www.tradingview.com/markets/currencies/rates-minor/',
+	);
+}
+
+export async function ForexExotic() {
+	return await fetchForexData(
+		'https://www.tradingview.com/markets/currencies/rates-exotic/',
+	);
+}
+
+export async function ForexAmericas() {
+	return await fetchForexData(
+		'https://www.tradingview.com/markets/currencies/rates-americas/',
+	);
+}
+
+export async function ForexEurope() {
+	return await fetchForexData(
+		'https://www.tradingview.com/markets/currencies/rates-europe/',
+	);
+}
+
+export async function ForexAsia() {
+	return await fetchForexData(
+		'https://www.tradingview.com/markets/currencies/rates-asia/',
+	);
+}
+
+export async function ForexPacific() {
+	return await fetchForexData(
+		'https://www.tradingview.com/markets/currencies/rates-pacific/',
+	);
+}
+
+export async function ForexAfrica() {
+	return await fetchForexData(
+		'https://www.tradingview.com/markets/currencies/rates-africa/',
+	);
+}

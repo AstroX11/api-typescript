@@ -1,12 +1,21 @@
 import { Router } from 'express';
 import {
 	Bing,
+	ForexAfrica,
+	ForexAmericas,
+	ForexAsia,
+	ForexEurope,
+	ForexExotic,
+	ForexMajor,
+	ForexMinor,
+	ForexPacific,
 	GizChinaNews,
 	Google,
 	mediafire,
 	stickersearch,
 	wallpaper,
 	wikipedia,
+	Yahoo,
 } from '../utils/search.js';
 
 const router = Router();
@@ -104,6 +113,102 @@ router.get('/bing', async (req, res) => {
 router.get('/technews', async (req, res) => {
 	try {
 		const response = await GizChinaNews();
+		res.json(response);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/yahoo', async (req, res) => {
+	try {
+		const { query } = req.query;
+		if (!query) {
+			return res
+				.status(400)
+				.json({ error: 'Query parameter is required.' });
+		}
+		const response = await Yahoo(query);
+		res.json({ result: response });
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/fxmajor', async (req, res) => {
+	try {
+		const response = await ForexMajor();
+		res.json(response);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/fxminor', async (req, res) => {
+	try {
+		const response = await ForexMinor();
+		res.json(response);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/fxexotic', async (req, res) => {
+	try {
+		const response = await ForexExotic();
+		res.json(response);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/fxamericas', async (req, res) => {
+	try {
+		const response = await ForexAmericas();
+		res.json(response);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/fxeurope', async (req, res) => {
+	try {
+		const response = await ForexEurope();
+		res.json(response);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/fxasia', async (req, res) => {
+	try {
+		const response = await ForexAsia();
+		res.json(response);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/fxpacific', async (req, res) => {
+	try {
+		const response = await ForexPacific();
+		res.json(response);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/fxmiddle-east', async (req, res) => {
+	try {
+		const response = await ForexMiddleEast();
+		res.json(response);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/fxafrica', async (req, res) => {
+	try {
+		const response = await ForexAfrica();
 		res.json(response);
 	} catch (error) {
 		res.status(500).json({ error: error.message });
