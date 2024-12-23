@@ -348,3 +348,31 @@ export async function ForexAfrica() {
 		'https://www.tradingview.com/markets/currencies/rates-africa/',
 	);
 }
+
+export async function FootballNews() {
+	try {
+		const response = await axios.get(
+			'https://www.eurosport.com/football/',
+		);
+		const html = response.data;
+		const $ = cheerio.load(html);
+
+		const newsItems = [];
+
+		$('div.flex.flex-col').each((index, element) => {
+			const title = $(element)
+				.find('h3.card-hover-underline')
+				.text()
+				.trim();
+			const url = $(element).find('a').attr('href');
+			if (title && url) {
+				newsItems.push({ title, url });
+			}
+		});
+
+		return newsItems;
+	} catch (error) {
+		console.error('Error fetching football news:', error);
+		return null;
+	}
+}

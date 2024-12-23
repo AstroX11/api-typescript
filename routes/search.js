@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
 	Bing,
+	FootballNews,
 	ForexAfrica,
 	ForexAmericas,
 	ForexAsia,
@@ -113,6 +114,15 @@ router.get('/bing', async (req, res) => {
 router.get('/technews', async (req, res) => {
 	try {
 		const response = await GizChinaNews();
+		res.json(response);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/footballnews', async (req, res) => {
+	try {
+		const response = await FootballNews();
 		res.json(response);
 	} catch (error) {
 		res.status(500).json({ error: error.message });
