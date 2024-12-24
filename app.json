@@ -1,23 +1,6 @@
 {
   "name": "astrox11-server",
   "description": "Server for AstroX11 repository",
-  "image": "heroku/nodejs",
   "repository": "https://github.com/AstroX11/server",
-  "addons": [
-    "heroku-postgresql"
-  ],
-  "env": {
-    "NODE_ENV": {
-      "description": "The environment the app is running in (production, staging, etc.)",
-      "value": "production"
-    }
-  },
-  "buildpacks": [
-    {
-      "url": "heroku/nodejs"
-    },
-    {
-      "url": "heroku/python"
-    }
-  ]
-} 
+  "stack": "container"
+}
