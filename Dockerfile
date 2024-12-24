@@ -1,29 +1,35 @@
-# Use an official Node.js image as the base image
-FROM node:18
+# Use the official Node.js image as a base image
+FROM node:18-slim
 
-# Install necessary system dependencies for canvas
-RUN apt-get update && \
-    apt-get install -y \
+# Set environment variables
+ENV NODE_ENV=production
+
+# Install system dependencies for canvas
+RUN apt-get update && apt-get install -y \
+    pkg-config \
     libcairo2-dev \
     libpango1.0-dev \
     libjpeg-dev \
     libgif-dev \
+    python3 \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory to /app
+# Set the working directory
 WORKDIR /app
 
-# Copy the package.json and yarn.lock files into the container
-COPY package.json yarn.lock ./
+# Copy package files
+COPY package*.json yarn.lock ./
 
-# Install dependencies using Yarn
-RUN yarn install --frozen-lockfile
+# Install dependencies
+RUN yarn install --frozen-lockfile --production=true
 
 # Copy the rest of the application code
 COPY . .
 
-# Expose port 3000
-EXPOSE 3000
+# Set the default port for Heroku
+ENV PORT=3000
+EXPOSE $PORT
 
-# Run the app
-CMD ["yarn", "start"] 
+# Start the application
+CMD ["yarn", "start"]
