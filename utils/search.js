@@ -351,15 +351,19 @@ export async function ForexAfrica() {
 
 export async function FootballNews() {
 	try {
-		const response = await axios.get('https://www.eurosport.com/football/', {
-			headers: {
-				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
-				'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-				'Accept-Language': 'en-US,en;q=0.5',
-				'Accept-Encoding': 'gzip, deflate, br',
-				'Connection': 'keep-alive'
-			}
-		});
+		const response = await axios.get(
+			'https://www.eurosport.com/football/',
+			{
+				headers: {
+					'User-Agent':
+						'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+					Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+					'Accept-Language': 'en-US,en;q=0.5',
+					'Accept-Encoding': 'gzip, deflate, br',
+					Connection: 'keep-alive',
+				},
+			},
+		);
 		const html = response.data;
 		const $ = cheerio.load(html);
 
@@ -380,5 +384,84 @@ export async function FootballNews() {
 	} catch (error) {
 		console.error('Error fetching football news:', error);
 		return null;
+	}
+}
+
+export async function getAirQualityForecast(country, city) {
+	try {
+		const url = `https://www.iqair.com/${country.toLowerCase()}/${city.toLowerCase()}`;
+		const headers = {
+			'User-Agent':
+				'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
+		};
+
+		const response = await axios.get(url, { headers });
+		const html = response.data;
+		const $ = cheerio.load(html);
+
+		// Extract subtitles
+		const dailyForecastTitle = $(
+			'.top-info-left .component-card__title',
+		).text();
+		const airQualitySubtitle = $(
+			'.top-info-left .component-card__description',
+		).text();
+
+		// Extract air quality status and main pollutant
+		const aqiValue = $('.aqi-value__estimated').text().trim();
+		const aqiStatus = $('.aqi-text__status').first().text().trim();
+		const mainPollutant = $(
+			'.aqi-overview-footer-container__main-pollutant .aqi-text__status',
+		)
+			.text()
+			.trim();
+		const mainPollutantValue = $('.aqi-text__value')
+			.first()
+			.text()
+			.trim();
+
+		// Extract day-by-day forecast
+		const forecast = [];
+		$('table[title] tbody tr').each((_, row) => {
+			const day = $(row).find('.day-label').text().trim();
+			const aqi = $(row).find('.aqi-chip').text().trim();
+			const rainProbability =
+				$(row).find('.probability-of-rain').text().trim() || 'N/A';
+			const maxTemp = $(row).find('.temp-max').text().trim();
+			const minTemp = $(row).find('.temp-min').text().trim();
+			const windSpeed = $(row).find('.wind-speed').text().trim();
+			const humidity = $(row)
+				.find('.humidity p')
+				.first()
+				.text()
+				.trim();
+
+			if (day && aqi && maxTemp && minTemp && windSpeed) {
+				forecast.push({
+					day,
+					aqi,
+					rainProbability,
+					maxTemp,
+					minTemp,
+					windSpeed,
+					humidity,
+				});
+			}
+		});
+
+		return {
+			dailyForecastTitle,
+			airQualitySubtitle,
+			current: {
+				aqiValue,
+				aqiStatus,
+				mainPollutant,
+				mainPollutantValue,
+			},
+			forecast,
+		};
+	} catch (error) {
+		console.error('Error fetching air quality forecast:', error);
+		throw error;
 	}
 }

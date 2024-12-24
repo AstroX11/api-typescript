@@ -10,6 +10,7 @@ import {
 	ForexMajor,
 	ForexMinor,
 	ForexPacific,
+	getAirQualityForecast,
 	GizChinaNews,
 	Google,
 	mediafire,
@@ -219,6 +220,23 @@ router.get('/fxmiddle-east', async (req, res) => {
 router.get('/fxafrica', async (req, res) => {
 	try {
 		const response = await ForexAfrica();
+		res.json(response);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/airquality', async (req, res) => {
+	try {
+		const { country, city } = req.query;
+		if (!country || !city) {
+			return res
+				.status(400)
+				.json({
+					error: 'Country and city parameters are required.',
+				});
+		}
+		const response = await getAirQualityForecast(country, city);
 		res.json(response);
 	} catch (error) {
 		res.status(500).json({ error: error.message });
