@@ -1,5 +1,5 @@
 # Use the official Node.js image as a base image
-FROM node:18-slim
+FROM node:20-slim
 
 # Set environment variables
 ENV NODE_ENV=production
