@@ -14,6 +14,7 @@ import {
 	GizChinaNews,
 	Google,
 	mediafire,
+	News,
 	stickersearch,
 	wallpaper,
 	wikipedia,
@@ -145,6 +146,15 @@ router.get('/yahoo', async (req, res) => {
 	}
 });
 
+router.get('/news', async (req, res) => {
+	try {
+		const data = await News();
+		res.json(data);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
 router.get('/fxmajor', async (req, res) => {
 	try {
 		const response = await ForexMajor();
@@ -230,11 +240,9 @@ router.get('/airquality', async (req, res) => {
 	try {
 		const { country, city } = req.query;
 		if (!country || !city) {
-			return res
-				.status(400)
-				.json({
-					error: 'Country and city parameters are required.',
-				});
+			return res.status(400).json({
+				error: 'Country and city parameters are required.',
+			});
 		}
 		const response = await getAirQualityForecast(country, city);
 		res.json(response);
