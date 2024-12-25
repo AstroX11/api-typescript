@@ -351,39 +351,28 @@ export async function ForexAfrica() {
 
 export async function FootballNews() {
 	try {
-		const response = await axios.get(
-			'https://www.eurosport.com/football/',
-			{
-				headers: {
-					'User-Agent':
-						'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
-					Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-					'Accept-Language': 'en-US,en;q=0.5',
-					'Accept-Encoding': 'gzip, deflate, br',
-					Connection: 'keep-alive',
-				},
-			},
-		);
+		const response = await axios.get('https://onefootball.com/en/home');
 		const html = response.data;
 		const $ = cheerio.load(html);
 
 		const newsItems = [];
-
-		$('div.flex.flex-col').each((index, element) => {
-			const title = $(element)
-				.find('h3.card-hover-underline')
-				.text()
-				.trim();
-			const url = $(element).find('a').attr('href');
-			if (title && url) {
-				newsItems.push({ title, url });
+		$('li[class*="Gallery_gallery__teaser"]').each((i, el) => {
+			const title = $(el)
+				.find('p.NewsTeaser_teaser__title__OsMxr')
+				.text();
+			const relativeUrl = $(el)
+				.find('a.NewsTeaser_teaser__content__BP26f')
+				.attr('href');
+			if (title && relativeUrl) {
+				const fullUrl = `https://onefootball.com${relativeUrl}`;
+				newsItems.push({ title, url: fullUrl });
 			}
 		});
 
 		return newsItems;
 	} catch (error) {
-		console.error('Error fetching football news:', error);
-		return null;
+		console.error('Error fetching or parsing news:', error.message);
+		return [];
 	}
 }
 

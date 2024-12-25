@@ -42,7 +42,7 @@ import Router5 from './routes/tools.js';
 import Router6 from './routes/ai.js';
 import Router7 from './routes/search.js';
 import Router8 from './routes/anime.js';
-import Router9 from './routes/meme.js';
+// import Router9 from './routes/meme.js';
 import uploadRouter from './routes/_upload.js';
 
 const app = express();
@@ -72,7 +72,7 @@ app.use('/api', Router5);
 app.use('/api', Router6);
 app.use('/api', Router7);
 app.use('/api', Router8);
-app.use('/api', Router9);
+// app.use('/api', Router9);
 app.use('/api/upload', uploadRouter);
 
 app.get('/api/users', (_, res) => {
