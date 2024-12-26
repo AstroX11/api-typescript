@@ -51,7 +51,7 @@ router.get('/sticker', async (req, res) => {
 		const { url, packname = 'Xstro', author = 'Astro' } = req.query;
 		if (!url)
 			return res.status(400).json({ error: 'Media URL is required' });
-
+console.log(url)
 		const mediaBuffer = await getBuffer(url);
 		const stickerBuffer = await toSticker(mediaBuffer, packname, author);
 

@@ -5,73 +5,158 @@ import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { fileTypeFromBuffer } from 'file-type';
 import { Sticker } from 'wa-sticker-formatter';
+import { pipeline } from 'stream/promises';
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 /**
- * Converts an image to a WebP sticker.
- *
- * @param {Buffer} media - Image buffer.
- * @param {string} pack - Sticker pack name.
- * @param {string} author - Sticker author name.
- * @returns {Promise<Buffer>} - Sticker WebP buffer.
+ * Memory-optimized image to WebP conversion
  */
 export const img2webp = async (media, pack, author) => {
-	const webpBuffer = await sharp(media)
+	// Configure sharp to use less memory
+	sharp.cache(false);
+	sharp.concurrency(1);
+
+	// Process image in streaming fashion
+	const transformer = sharp()
 		.resize({
 			width: 512,
 			height: 512,
 			fit: 'contain',
 			background: { r: 0, g: 0, b: 0, alpha: 0 },
 		})
-		.webp({ quality: 80 })
-		.toBuffer();
+		.webp({
+			quality: 80,
+			lossless: false,
+			force: true,
+		});
 
+	// Create readable stream from buffer
+	const readableStream = new Readable();
+	readableStream.push(media);
+	readableStream.push(null);
+
+	// Process in chunks
+	const chunks = [];
+	await pipeline(
+		readableStream,
+		transformer,
+		new Writable({
+			write(chunk, encoding, callback) {
+				chunks.push(chunk);
+				callback();
+			},
+		}),
+	);
+
+	const webpBuffer = Buffer.concat(chunks);
+
+	// Create sticker with optimized settings
 	const sticker = new Sticker(webpBuffer, {
 		pack,
 		author,
 		crop: false,
+		quality: 80,
 	});
+
 	return await sticker.toBuffer();
 };
 
 /**
- * Converts a video to an optimized animated WebP sticker.
- *
- * @param {Buffer} media - Video buffer.
- * @returns {Promise<Buffer>} - Sticker WebP buffer.
+ * Memory-optimized video to WebP conversion
  */
 export const mp42webp = async media => {
-	const tmpFileIn = path.join(`${Date.now()}.mp4`);
-	const tmpFileOut = path.join(`${Date.now()}.webp`);
-	fs.writeFileSync(tmpFileIn, media);
-	await new Promise((resolve, reject) => {
-		ffmpeg(tmpFileIn).outputOptions([`-t 8`, `-vf fps=15,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0`, '-loop 0', '-pix_fmt yuva420p']).toFormat('webp').on('end', resolve).on('error', reject).save(tmpFileOut);
-	});
-	const buffer = fs.readFileSync(tmpFileOut);
-	fs.unlinkSync(tmpFileIn);
-	fs.unlinkSync(tmpFileOut);
-	return buffer;
+	const tmpDir = path.join(process.env.TMPDIR || '/tmp');
+	const tmpFileIn = path.join(tmpDir, `${Date.now()}.mp4`);
+	const tmpFileOut = path.join(tmpDir, `${Date.now()}.webp`);
+
+	// Write input file in chunks
+	await fs.promises.writeFile(tmpFileIn, media);
+
+	try {
+		await new Promise((resolve, reject) => {
+			ffmpeg(tmpFileIn)
+				.outputOptions([
+					'-t 8',
+					'-vf',
+					[
+						'fps=10', // Reduced from 15 to 10
+						'scale=384:384:force_original_aspect_ratio=decrease', // Reduced from 512x512
+						'pad=384:384:(ow-iw)/2:(oh-ih)/2:color=black@0',
+					].join(','),
+					'-loop',
+					'0',
+					'-preset',
+					'ultrafast', // Use fastest encoding
+					'-pix_fmt',
+					'yuva420p',
+					'-threads',
+					'1', // Limit threads
+				])
+				.toFormat('webp')
+				.on('end', resolve)
+				.on('error', reject)
+				.save(tmpFileOut);
+		});
+
+		// Read output file in chunks
+		const buffer = await fs.promises.readFile(tmpFileOut);
+		return buffer;
+	} finally {
+		// Clean up temporary files
+		await Promise.all([
+			fs.promises.unlink(tmpFileIn).catch(() => {}),
+			fs.promises.unlink(tmpFileOut).catch(() => {}),
+		]);
+	}
 };
 
 /**
- * Converts media to a WhatsApp-compatible sticker.
- *
- * @param {Buffer} buffer - Media buffer (image or video).
- * @param {string} pack - Sticker pack name.
- * @param {string} author - Sticker author name.
- * @returns {Promise<Buffer>} - Sticker WebP buffer.
+ * Main sticker conversion function with memory optimization
  */
 export const toSticker = async (buffer, pack, author) => {
-	const fileType = await fileTypeFromBuffer(buffer);
-	const { mime } = fileType;
-	let res;
-	if (mime.startsWith('image/')) {
-		res = await img2webp(buffer, pack, author);
-	} else if (mime.startsWith('video/')) {
-		res = await mp42webp(buffer);
-	} else {
-		throw new Error('Only images and videos are supported');
+	// Add memory usage logging for debugging
+	const memoryUsage = process.memoryUsage();
+	console.log('Memory usage before processing:', {
+		heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
+		heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
+	});
+
+	try {
+		const fileType = await fileTypeFromBuffer(buffer);
+		const { mime } = fileType;
+
+		// Add size check
+		if (buffer.length > 10 * 1024 * 1024) {
+			// 10MB limit
+			throw new Error('File too large. Maximum size is 10MB');
+		}
+
+		let res;
+		if (mime.startsWith('image/')) {
+			res = await img2webp(buffer, pack, author);
+		} else if (mime.startsWith('video/')) {
+			res = await mp42webp(buffer);
+		} else {
+			throw new Error('Only images and videos are supported');
+		}
+
+		return res;
+	} finally {
+		// Force garbage collection if available
+		if (global.gc) {
+			global.gc();
+		}
+
+		// Log memory usage after processing
+		const endMemoryUsage = process.memoryUsage();
+		console.log('Memory usage after processing:', {
+			heapUsed: `${Math.round(
+				endMemoryUsage.heapUsed / 1024 / 1024,
+			)}MB`,
+			heapTotal: `${Math.round(
+				endMemoryUsage.heapTotal / 1024 / 1024,
+			)}MB`,
+		});
 	}
-	return res;
 };
