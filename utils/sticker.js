@@ -6,6 +6,7 @@ import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { fileTypeFromBuffer } from 'file-type';
 import { Sticker } from 'wa-sticker-formatter';
 import { pipeline } from 'stream/promises';
+import { Readable, Writable } from 'stream';
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
