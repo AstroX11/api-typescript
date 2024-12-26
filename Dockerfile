@@ -74,9 +74,18 @@ RUN yarn install --frozen-lockfile --production=true
 # Copy the rest of the application code
 COPY . .
 
+# Configure Chrome Sandbox
+RUN chmod 755 /usr/bin/chromium && \
+    chown root:root /usr/bin/chromium && \
+    chmod 4755 /usr/lib/chromium/chrome-sandbox && \
+    chown root:root /usr/lib/chromium/chrome-sandbox
+
 # Set Puppeteer configurations
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+# Either run with no sandbox (less secure) or ensure proper sandbox setup
+ENV PUPPETEER_ARGS="--no-sandbox --disable-setuid-sandbox"
 
 # Set the default port for Heroku
 ENV PORT=3000
