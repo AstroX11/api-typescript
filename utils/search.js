@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import puppeteer from 'puppeteer';
 
 export async function stickersearch(query) {
 	return new Promise(resolve => {
@@ -491,5 +492,71 @@ export async function News() {
 	} catch (error) {
 		console.error('Error fetching news:', error);
 		return [];
+	}
+}
+
+export async function getMarketData(symbol) {
+	const browser = await puppeteer.launch({ headless: true });
+	const page = await browser.newPage();
+
+	try {
+		const url = `https://www.tradingview.com/symbols/${symbol}/`;
+		await page.goto(url, { waitUntil: 'networkidle2' });
+
+		// Wait for the ticker container to load
+		await page.waitForSelector('.js-symbol-header-ticker', {
+			timeout: 5000,
+		});
+
+		// Extract specific market data
+		const marketData = await page.evaluate(() => {
+			const ticker = document.querySelector(
+				'.js-symbol-header-ticker',
+			);
+			if (!ticker) return null;
+
+			const lastPriceElement = ticker.querySelector('.js-symbol-last');
+			const currencyElement = ticker.querySelector(
+				'.js-symbol-currency',
+			);
+			const changeValueElement = ticker.querySelector(
+				'.changeValue-kSnhnsc2',
+			);
+			const changePercentageElement = ticker.querySelector(
+				'.js-symbol-change-pt',
+			);
+			const lastUpdateElement =
+				document.querySelector('.js-symbol-lp-time'); // Adjust if necessary
+
+			const lastPrice = lastPriceElement
+				? lastPriceElement.textContent.trim()
+				: null;
+			const currency = currencyElement
+				? currencyElement.textContent.trim()
+				: null;
+			const changeValue = changeValueElement
+				? changeValueElement.textContent.trim()
+				: null;
+			const changePercentage = changePercentageElement
+				? changePercentageElement.textContent.trim()
+				: null;
+			const lastUpdate = lastUpdateElement
+				? lastUpdateElement.textContent.trim()
+				: null;
+
+			return {
+				lastPrice,
+				currency,
+				changeValue,
+				changePercentage,
+				lastUpdate,
+			};
+		});
+		return marketData;
+	} catch (error) {
+		console.error('Error fetching market data:', error.message);
+		return null;
+	} finally {
+		await browser.close();
 	}
 }

@@ -11,6 +11,7 @@ import {
 	ForexMinor,
 	ForexPacific,
 	getAirQualityForecast,
+	getMarketData,
 	GizChinaNews,
 	Google,
 	mediafire,
@@ -150,6 +151,19 @@ router.get('/news', async (req, res) => {
 	try {
 		const data = await News();
 		res.json(data);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/forex', async (req, res) => {
+	try {
+		const { symbol } = req.query;
+		if (!symbol) {
+			return res.status(400).json({ error: 'Symbol parameter is required.' });
+		}
+		const response = await getMarketData(symbol);
+		res.json(response);
 	} catch (error) {
 		res.status(500).json({ error: error.message });
 	}
