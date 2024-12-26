@@ -1,163 +1,211 @@
 import fs from 'fs';
-import sharp from 'sharp';
 import path from 'path';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { fileTypeFromBuffer } from 'file-type';
-import { Sticker } from 'wa-sticker-formatter';
-import { pipeline } from 'stream/promises';
-import { Readable, Writable } from 'stream';
+import Crypto from 'crypto';
+import webp from 'node-webpmux';
+import { tmpdir } from 'os';
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
-/**
- * Memory-optimized image to WebP conversion
- */
-export const img2webp = async (media, pack, author) => {
-	// Configure sharp to use less memory
-	sharp.cache(false);
-	sharp.concurrency(1);
-
-	// Process image in streaming fashion
-	const transformer = sharp()
-		.resize({
-			width: 512,
-			height: 512,
-			fit: 'contain',
-			background: { r: 0, g: 0, b: 0, alpha: 0 },
-		})
-		.webp({
-			quality: 80,
-			lossless: false,
-			force: true,
-		});
-
-	// Create readable stream from buffer
-	const readableStream = new Readable();
-	readableStream.push(media);
-	readableStream.push(null);
-
-	// Process in chunks
-	const chunks = [];
-	await pipeline(
-		readableStream,
-		transformer,
-		new Writable({
-			write(chunk, encoding, callback) {
-				chunks.push(chunk);
-				callback();
-			},
-		}),
+async function imageToWebp(media) {
+	const tmpFileOut = path.join(
+		tmpdir(),
+		`${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.webp`,
+	);
+	const tmpFileIn = path.join(
+		tmpdir(),
+		`${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.jpg`,
 	);
 
-	const webpBuffer = Buffer.concat(chunks);
+	fs.writeFileSync(tmpFileIn, media);
 
-	// Create sticker with optimized settings
-	const sticker = new Sticker(webpBuffer, {
-		pack,
-		author,
-		crop: false,
-		quality: 80,
+	await new Promise((resolve, reject) => {
+		ffmpeg(tmpFileIn)
+			.on('error', reject)
+			.on('end', () => resolve(true))
+			.addOutputOptions([
+				'-vcodec',
+				'libwebp',
+				'-vf',
+				"scale='min(320,iw)':min'(320,ih)':force_original_aspect_ratio=decrease,fps=15, pad=320:320:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=ffffff [p]; [b][p] paletteuse",
+			])
+			.toFormat('webp')
+			.save(tmpFileOut);
 	});
 
-	return await sticker.toBuffer();
-};
+	const buff = fs.readFileSync(tmpFileOut);
+	fs.unlinkSync(tmpFileOut);
+	fs.unlinkSync(tmpFileIn);
+	return buff;
+}
 
-/**
- * Memory-optimized video to WebP conversion
- */
-export const mp42webp = async media => {
-	const tmpDir = path.join(process.env.TMPDIR || '/tmp');
-	const tmpFileIn = path.join(tmpDir, `${Date.now()}.mp4`);
-	const tmpFileOut = path.join(tmpDir, `${Date.now()}.webp`);
+async function videoToWebp(media) {
+	const tmpFileOut = path.join(
+		tmpdir(),
+		`${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.webp`,
+	);
+	const tmpFileIn = path.join(
+		tmpdir(),
+		`${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.mp4`,
+	);
 
-	// Write input file in chunks
-	await fs.promises.writeFile(tmpFileIn, media);
+	fs.writeFileSync(tmpFileIn, media);
 
-	try {
-		await new Promise((resolve, reject) => {
-			ffmpeg(tmpFileIn)
-				.outputOptions([
-					'-t 8',
-					'-vf',
-					[
-						'fps=10', // Reduced from 15 to 10
-						'scale=384:384:force_original_aspect_ratio=decrease', // Reduced from 512x512
-						'pad=384:384:(ow-iw)/2:(oh-ih)/2:color=black@0',
-					].join(','),
-					'-loop',
-					'0',
-					'-preset',
-					'ultrafast', // Use fastest encoding
-					'-pix_fmt',
-					'yuva420p',
-					'-threads',
-					'1', // Limit threads
-				])
-				.toFormat('webp')
-				.on('end', resolve)
-				.on('error', reject)
-				.save(tmpFileOut);
-		});
+	await new Promise((resolve, reject) => {
+		ffmpeg(tmpFileIn)
+			.on('error', reject)
+			.on('end', () => resolve(true))
+			.addOutputOptions([
+				'-vcodec',
+				'libwebp',
+				'-vf',
+				"scale='min(320,iw)':min'(320,ih)':force_original_aspect_ratio=decrease,fps=15, pad=320:320:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=ffffff [p]; [b][p] paletteuse",
+				'-loop',
+				'0',
+				'-ss',
+				'00:00:00',
+				'-t',
+				'00:00:05',
+				'-preset',
+				'default',
+				'-an',
+				'-vsync',
+				'0',
+			])
+			.toFormat('webp')
+			.save(tmpFileOut);
+	});
 
-		// Read output file in chunks
-		const buffer = await fs.promises.readFile(tmpFileOut);
-		return buffer;
-	} finally {
-		// Clean up temporary files
-		await Promise.all([
-			fs.promises.unlink(tmpFileIn).catch(() => {}),
-			fs.promises.unlink(tmpFileOut).catch(() => {}),
+	const buff = fs.readFileSync(tmpFileOut);
+	fs.unlinkSync(tmpFileOut);
+	fs.unlinkSync(tmpFileIn);
+	return buff;
+}
+
+async function writeExifImg(media, metadata = {}) {
+	let wMedia = await imageToWebp(media);
+	const tmpFileIn = path.join(
+		tmpdir(),
+		`${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.webp`,
+	);
+	const tmpFileOut = path.join(
+		tmpdir(),
+		`${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.webp`,
+	);
+	fs.writeFileSync(tmpFileIn, wMedia);
+
+	if (metadata.packname || metadata.author) {
+		const img = new webp.Image();
+		const json = {
+			'sticker-pack-id': `https://github.com/AstroX11/Xstro`,
+			'sticker-pack-name': metadata.packname,
+			'sticker-pack-publisher': metadata.author,
+			emojis: metadata.categories ? metadata.categories : [''],
+		};
+		const exifAttr = Buffer.from([
+			0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x41,
+			0x57, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00,
 		]);
+		const jsonBuff = Buffer.from(JSON.stringify(json), 'utf-8');
+		const exif = Buffer.concat([exifAttr, jsonBuff]);
+		exif.writeUIntLE(jsonBuff.length, 14, 4);
+		await img.load(tmpFileIn);
+		fs.unlinkSync(tmpFileIn);
+		img.exif = exif;
+		await img.save(tmpFileOut);
+		return fs.readFileSync(tmpFileOut);
 	}
-};
+}
 
+async function writeExifVid(media, metadata = {}) {
+	let wMedia = await videoToWebp(media);
+	const tmpFileIn = path.join(
+		tmpdir(),
+		`${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.webp`,
+	);
+	const tmpFileOut = path.join(
+		tmpdir(),
+		`${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.webp`,
+	);
+	fs.writeFileSync(tmpFileIn, wMedia);
+
+	if (metadata.packname || metadata.author) {
+		const img = new webp.Image();
+		const json = {
+			'sticker-pack-id': `https://github.com/AstroX11/Xstro`,
+			'sticker-pack-name': metadata.packname,
+			'sticker-pack-publisher': metadata.author,
+			emojis: metadata.categories ? metadata.categories : [''],
+		};
+		const exifAttr = Buffer.from([
+			0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x41,
+			0x57, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00,
+		]);
+		const jsonBuff = Buffer.from(JSON.stringify(json), 'utf-8');
+		const exif = Buffer.concat([exifAttr, jsonBuff]);
+		exif.writeUIntLE(jsonBuff.length, 14, 4);
+		await img.load(tmpFileIn);
+		fs.unlinkSync(tmpFileIn);
+		img.exif = exif;
+		await img.save(tmpFileOut);
+		return fs.readFileSync(tmpFileOut);
+	}
+}
+
+async function writeExifWebp(media, metadata) {
+	const tmpFileIn = path.join(
+		tmpdir(),
+		`${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.webp`,
+	);
+	const tmpFileOut = path.join(
+		tmpdir(),
+		`${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.webp`,
+	);
+	fs.writeFileSync(tmpFileIn, media);
+
+	if (metadata.packname || metadata.author) {
+		const img = new webp.Image();
+		const json = {
+			'sticker-pack-id': `https://github.com/AstroX11/Xstro`,
+			'sticker-pack-name': metadata.packname,
+			'sticker-pack-publisher': metadata.author,
+			emojis: metadata.categories ? metadata.categories : [''],
+		};
+		const exifAttr = await Buffer.from([
+			0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x41,
+			0x57, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00,
+		]);
+		const jsonBuff = await Buffer.from(JSON.stringify(json), 'utf-8');
+		const exif = await Buffer.concat([exifAttr, jsonBuff]);
+		await exif.writeUIntLE(jsonBuff.length, 14, 4);
+		await img.load(tmpFileIn);
+		fs.unlinkSync(tmpFileIn);
+		img.exif = exif;
+		await img.save(tmpFileOut);
+		return tmpFileOut;
+	}
+}
 /**
- * Main sticker conversion function with memory optimization
+ * Converts media to a WhatsApp-compatible sticker.
+ *
+ * @param {Buffer} buffer - Media buffer (image or video).
+ * @param {string} pack - Sticker pack name.
+ * @param {string} author - Sticker author name.
+ * @returns {Promise<Buffer>} - Sticker WebP buffer.
  */
 export const toSticker = async (buffer, pack, author) => {
-	// Add memory usage logging for debugging
-	const memoryUsage = process.memoryUsage();
-	console.log('Memory usage before processing:', {
-		heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
-		heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
-	});
-
-	try {
-		const fileType = await fileTypeFromBuffer(buffer);
-		const { mime } = fileType;
-
-		// Add size check
-		if (buffer.length > 10 * 1024 * 1024) {
-			// 10MB limit
-			throw new Error('File too large. Maximum size is 10MB');
-		}
-
-		let res;
-		if (mime.startsWith('image/')) {
-			res = await img2webp(buffer, pack, author);
-		} else if (mime.startsWith('video/')) {
-			res = await mp42webp(buffer);
-		} else {
-			throw new Error('Only images and videos are supported');
-		}
-
-		return res;
-	} finally {
-		// Force garbage collection if available
-		if (global.gc) {
-			global.gc();
-		}
-
-		// Log memory usage after processing
-		const endMemoryUsage = process.memoryUsage();
-		console.log('Memory usage after processing:', {
-			heapUsed: `${Math.round(
-				endMemoryUsage.heapUsed / 1024 / 1024,
-			)}MB`,
-			heapTotal: `${Math.round(
-				endMemoryUsage.heapTotal / 1024 / 1024,
-			)}MB`,
-		});
+	const fileType = await fileTypeFromBuffer(buffer);
+	const { mime } = fileType;
+	let res;
+	const options = { packname: pack, author: author };
+	if (mime.startsWith('image/')) {
+		res = await writeExifImg(buffer, options);
+	} else if (mime.startsWith('video/')) {
+		res = await writeExifVid(buffer, options);
+	} else {
+		throw new Error('Only images and videos are supported');
 	}
+	return res;
 };
