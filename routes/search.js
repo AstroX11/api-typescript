@@ -17,9 +17,10 @@ import {
 	mediafire,
 	News,
 	stickersearch,
+	WaBetaInfo,
 	wallpaper,
 	wikipedia,
-	Yahoo,
+	Yahoo
 } from '../utils/search.js';
 
 const router = Router();
@@ -28,9 +29,7 @@ router.get('/ssticker', async (req, res) => {
 	try {
 		const { query } = req.query; // Extract 'query' parameter
 		if (!query) {
-			return res
-				.status(400)
-				.json({ error: 'Query parameter is required.' });
+			return res.status(400).json({ error: 'Query parameter is required.' });
 		}
 		const results = await stickersearch(query);
 		res.json(results);
@@ -43,9 +42,7 @@ router.get('/google', async (req, res) => {
 	try {
 		const { query } = req.query;
 		if (!query) {
-			return res
-				.status(400)
-				.json({ error: 'Query parameter is required.' });
+			return res.status(400).json({ error: 'Query parameter is required.' });
 		}
 		const response = await Google(query);
 		res.json({ result: response });
@@ -58,9 +55,7 @@ router.get('/wallpaper', async (req, res) => {
 	try {
 		const { query } = req.query;
 		if (!query) {
-			return res
-				.status(400)
-				.json({ error: 'Query parameter is required.' });
+			return res.status(400).json({ error: 'Query parameter is required.' });
 		}
 		const results = await wallpaper(query);
 		res.json(results);
@@ -73,9 +68,7 @@ router.get('/wikipedia', async (req, res) => {
 	try {
 		const { query } = req.query;
 		if (!query) {
-			return res
-				.status(400)
-				.json({ error: 'Query parameter is required.' });
+			return res.status(400).json({ error: 'Query parameter is required.' });
 		}
 		const results = await wikipedia(query);
 		res.json(results);
@@ -88,9 +81,7 @@ router.get('/mediafire', async (req, res) => {
 	try {
 		const { url } = req.query;
 		if (!url) {
-			return res
-				.status(400)
-				.json({ error: 'URL parameter is required.' });
+			return res.status(400).json({ error: 'URL parameter is required.' });
 		}
 		const results = await mediafire(url);
 		res.json(results);
@@ -103,9 +94,7 @@ router.get('/bing', async (req, res) => {
 	try {
 		const { query } = req.query;
 		if (!query) {
-			return res
-				.status(400)
-				.json({ error: 'Query parameter is required.' });
+			return res.status(400).json({ error: 'Query parameter is required.' });
 		}
 		const response = await Bing(query);
 		res.json({ result: response });
@@ -136,9 +125,7 @@ router.get('/yahoo', async (req, res) => {
 	try {
 		const { query } = req.query;
 		if (!query) {
-			return res
-				.status(400)
-				.json({ error: 'Query parameter is required.' });
+			return res.status(400).json({ error: 'Query parameter is required.' });
 		}
 		const response = await Yahoo(query);
 		res.json({ result: response });
@@ -151,6 +138,15 @@ router.get('/news', async (req, res) => {
 	try {
 		const data = await News();
 		res.json(data);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/wabeta', async (req, res) => {
+	try {
+		const response = await WaBetaInfo();
+		res.json(response);
 	} catch (error) {
 		res.status(500).json({ error: error.message });
 	}
@@ -255,7 +251,7 @@ router.get('/airquality', async (req, res) => {
 		const { country, city } = req.query;
 		if (!country || !city) {
 			return res.status(400).json({
-				error: 'Country and city parameters are required.',
+				error: 'Country and city parameters are required.'
 			});
 		}
 		const response = await getAirQualityForecast(country, city);

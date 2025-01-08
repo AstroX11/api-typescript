@@ -210,6 +210,38 @@ export async function GizChinaNews() {
 	}
 }
 
+export async function WaBetaInfo() {
+	try {
+	  const response = await axios.get('https://wabetainfo.com/', {
+		headers: {
+		  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+		  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+		  'Accept-Language': 'en-US,en;q=0.9',
+		  'Accept-Encoding': 'gzip, deflate, br',
+		  'Connection': 'keep-alive',
+		  'Upgrade-Insecure-Requests': '1',
+		}
+	  });
+  
+	  const $ = cheerio.load(response.data);
+	  const posts = [];
+	  
+	  $('article').each((index, element) => {
+		const title = $(element).find('.entry-title a').text();
+		const url = $(element).find('.entry-title a').attr('href');
+		const description = $(element).find('.entry-excerpt').text().trim();
+		
+		posts.push({ title, description, url });
+	  });
+  
+	  return posts;
+	} catch (error) {
+	  console.error('Error fetching WaBetaInfo:', error);
+	  return null;
+	}
+  }
+  
+
 export async function Yahoo(query) {
 	try {
 		const searchUrl = `https://search.yahoo.com/search?p=${encodeURIComponent(
