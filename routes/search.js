@@ -17,6 +17,7 @@ import {
 	mediafire,
 	News,
 	stickersearch,
+	VoxNews,
 	WaBetaInfo,
 	wallpaper,
 	wikipedia,
@@ -138,6 +139,15 @@ router.get('/news', async (req, res) => {
 	try {
 		const data = await News();
 		res.json(data);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+router.get('/voxnews', async (req, res) => {
+	try {
+		const response = await VoxNews();
+		res.json(response);
 	} catch (error) {
 		res.status(500).json({ error: error.message });
 	}
