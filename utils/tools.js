@@ -6,7 +6,10 @@ import puppeteer from 'puppeteer';
 import path from 'path';
 
 export async function convertWebPtoMP4(file) {
-	const browser = await puppeteer.launch({ headless: false });
+	const browser = await puppeteer.launch({
+		headless: true,
+		args: ['--no-sandbox', '--disable-setuid-sandbox']
+	});
 	const page = await browser.newPage();
 	await page.goto('https://ezgif.com/webp-to-mp4');
 	await page.waitForSelector('.stpd_cta_btn');
