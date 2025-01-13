@@ -5,60 +5,34 @@ import axios from 'axios';
 import puppeteer from 'puppeteer';
 import path from 'path';
 
-import puppeteer from 'puppeteer';
-import path from 'path';
-
 export async function convertWebPtoMP4(file) {
 	const browser = await puppeteer.launch({
-		headless: true,
-		args: ['--no-sandbox', '--disable-setuid-sandbox']
+		headless: false,
+		args: [ '--no-sandbox',
+			'--disable-setuid-sandbox',
+			'--disable-dev-shm-usage', // Use `/tmp` for shared memory
+			'--disable-extensions',
+			'--disable-gpu',    ]
 	});
 	const page = await browser.newPage();
 	await page.goto('https://ezgif.com/webp-to-mp4');
-
-	try {
-		await page.waitForSelector('.stpd_cta_btn', { timeout: 3000 });
-		await page.click('.stpd_cta_btn');
-	} catch (error) {
-		console.log('CTA button not found, continuing...');
-	}
-
-	try {
-		await page.waitForSelector('form#upload-form', { timeout: 3000 });
-		const filePath = path.resolve(file);
-		const inputUploadHandle = await page.$('input[type="file"]');
-		if (inputUploadHandle) {
-			await inputUploadHandle.uploadFile(filePath);
-		}
-		await page.click('input[type="submit"][value="Upload!"]');
-	} catch (error) {
-		console.log('Upload form or file input not found, aborting...');
-		await browser.close();
-		return null;
-	}
-
-	try {
-		await page.waitForSelector('input[type="submit"][value="Convert WebP to MP4!"]', {
-			timeout: 3000
-		});
-		await page.click('input[type="submit"][value="Convert WebP to MP4!"]');
-	} catch (error) {
-		console.log('Convert button not found, aborting...');
-		await browser.close();
-		return null;
-	}
-
-	try {
-		await page.waitForSelector('#output video source', { timeout: 3000 });
-		const videoUrl = await page.$eval('#output video source', el => el.getAttribute('src'));
-		const videoDownloadUrl = `https:${videoUrl}`;
-		await browser.close();
-		return videoDownloadUrl;
-	} catch (error) {
-		console.log('Output video not found, aborting...');
-		await browser.close();
-		return null;
-	}
+	await page.waitForSelector('.stpd_cta_btn');
+	await page.click('.stpd_cta_btn');
+	await page.waitForSelector('form#upload-form');
+	const filePath = path.resolve(file);
+	const inputUploadHandle = await page.$('input[type="file"]');
+	await inputUploadHandle.uploadFile(filePath);
+	await page.click('input[type="submit"][value="Upload!"]');
+	await page.waitForSelector('input[type="submit"][value="Convert WebP to MP4!"]', {
+		visible: true
+	});
+	await page.click('input[type="submit"][value="Convert WebP to MP4!"]');
+	await page.waitForSelector('#output video source');
+	const videoUrl = await page.$eval('#output video source', el => el.getAttribute('src'));
+	const videoDownloadUrl = `https:${videoUrl}`;
+	console.log(videoDownloadUrl)
+	await browser.close();
+	return videoDownloadUrl;
 }
 
 async function obfus(query) {
