@@ -2,6 +2,30 @@ import jsobfus from 'javascript-obfuscator';
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
 import axios from 'axios';
+import puppeteer from 'puppeteer';
+import path from 'path';
+
+export async function convertWebPtoMP4(file) {
+	const browser = await puppeteer.launch({ headless: false });
+	const page = await browser.newPage();
+	await page.goto('https://ezgif.com/webp-to-mp4');
+	await page.waitForSelector('.stpd_cta_btn');
+	await page.click('.stpd_cta_btn');
+	await page.waitForSelector('form#upload-form');
+	const filePath = path.resolve(file);
+	const inputUploadHandle = await page.$('input[type="file"]');
+	await inputUploadHandle.uploadFile(filePath);
+	await page.click('input[type="submit"][value="Upload!"]');
+	await page.waitForSelector('input[type="submit"][value="Convert WebP to MP4!"]', {
+		visible: true
+	});
+	await page.click('input[type="submit"][value="Convert WebP to MP4!"]');
+	await page.waitForSelector('#output video source');
+	const videoUrl = await page.$eval('#output video source', el => el.getAttribute('src'));
+	const videoDownloadUrl = `https:${videoUrl}`;
+	await browser.close();
+	return videoDownloadUrl;
+}
 
 async function obfus(query) {
 	return new Promise((resolve, reject) => {
@@ -14,12 +38,12 @@ async function obfus(query) {
 				simplify: true,
 				stringArrayShuffle: true,
 				splitStrings: true,
-				stringArrayThreshold: 1,
+				stringArrayThreshold: 1
 			});
 			const result = {
 				status: 200,
 				author: `Astro`,
-				result: obfuscationResult.getObfuscatedCode(),
+				result: obfuscationResult.getObfuscatedCode()
 			};
 			resolve(result);
 		} catch (e) {
@@ -30,27 +54,32 @@ async function obfus(query) {
 
 async function ttp(text) {
 	try {
-		const response = await fetch('https://www.picturetopeople.org/p2p/text_effects_generator.p2p/transparent_text_effect', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
-				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36',
-				Cookie: '_ga=GA1.2.1667267761.1655982457; _gid=GA1.2.77586860.1655982457; __gads=ID=c5a896288a559a38-224105aab0d30085:T=1655982456:RT=1655982456:S=ALNI_MbtHcmgQmVUZI-a2agP40JXqeRnyQ; __gpi=UID=000006149da5cba6:T=1655982456:RT=1655982456:S=ALNI_MY1RmQtva14GH-aAPr7-7vWpxWtmg; _gat_gtag_UA_6584688_1=1',
-			},
-			body: new URLSearchParams({
-				TextToRender: text,
-				FontSize: '100',
-				Margin: '30',
-				LayoutStyle: '0',
-				TextRotation: '0',
-				TextColor: 'ffffff',
-				TextTransparency: '0',
-				OutlineThickness: '3',
-				OutlineColor: '000000',
-				FontName: 'Lekton',
-				ResultType: 'view',
-			}).toString(),
-		});
+		const response = await fetch(
+			'https://www.picturetopeople.org/p2p/text_effects_generator.p2p/transparent_text_effect',
+			{
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded',
+					'User-Agent':
+						'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36',
+					Cookie:
+						'_ga=GA1.2.1667267761.1655982457; _gid=GA1.2.77586860.1655982457; __gads=ID=c5a896288a559a38-224105aab0d30085:T=1655982456:RT=1655982456:S=ALNI_MbtHcmgQmVUZI-a2agP40JXqeRnyQ; __gpi=UID=000006149da5cba6:T=1655982456:RT=1655982456:S=ALNI_MY1RmQtva14GH-aAPr7-7vWpxWtmg; _gat_gtag_UA_6584688_1=1'
+				},
+				body: new URLSearchParams({
+					TextToRender: text,
+					FontSize: '100',
+					Margin: '30',
+					LayoutStyle: '0',
+					TextRotation: '0',
+					TextColor: 'ffffff',
+					TextTransparency: '0',
+					OutlineThickness: '3',
+					OutlineColor: '000000',
+					FontName: 'Lekton',
+					ResultType: 'view'
+				}).toString()
+			}
+		);
 
 		const bodyText = await response.text();
 		const $ = cheerio.load(bodyText);
@@ -60,7 +89,7 @@ async function ttp(text) {
 			const refTS = $(formElement).find('#idRefTS').attr('value');
 			results.push({
 				url: 'https://www.picturetopeople.org' + resultFile,
-				title: refTS,
+				title: refTS
 			});
 		});
 
@@ -70,7 +99,6 @@ async function ttp(text) {
 		return [];
 	}
 }
-
 
 async function githubstalk(user) {
 	return new Promise((resolve, reject) => {
@@ -94,7 +122,7 @@ async function githubstalk(user) {
 				followers: data.followers,
 				following: data.following,
 				ceated_at: data.created_at,
-				updated_at: data.updated_at,
+				updated_at: data.updated_at
 			};
 			resolve(hasil);
 		});

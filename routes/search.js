@@ -1,3 +1,17 @@
+import fs from 'fs';
+import multer from 'multer';
+import os from 'os'
+const upload = multer({
+	dest: os.tmpdir(),
+	fileFilter: (req, file, cb) => {
+		if (file.mimetype === 'image/webp') {
+			cb(null, true);
+		} else {
+			cb(new Error('Only WebP files are allowed'));
+		}
+	}
+});
+
 import { Router } from 'express';
 import {
 	Bing,
@@ -23,6 +37,7 @@ import {
 	wikipedia,
 	Yahoo
 } from '../utils/search.js';
+import { convertWebPtoMP4 } from '../utils/tools.js';
 
 const router = Router();
 
@@ -268,6 +283,23 @@ router.get('/airquality', async (req, res) => {
 		res.json(response);
 	} catch (error) {
 		res.status(500).json({ error: error.message });
+	}
+});
+
+router.post('/webpmp4', upload.single('file'), async (req, res) => {
+	try {
+		if (!req.file) {
+			return res.status(400).json({ error: 'No file provided' });
+		}
+		const videoUrl = await convertWebPtoMP4(req.file.path);
+		fs.unlink(req.file.path, err => {
+			if (err) console.error('Error deleting temporary file:', err);
+		});
+
+		return res.json({ url: videoUrl });
+	} catch (error) {
+		console.error('Conversion error:', error);
+		return res.status(500).json({ error: 'Conversion failed' });
 	}
 });
 
