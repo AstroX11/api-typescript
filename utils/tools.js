@@ -12,8 +12,8 @@ export async function convertWebPtoMP4(file) {
 	});
 	const page = await browser.newPage();
 	await page.goto('https://ezgif.com/webp-to-mp4');
-	await page.waitForSelector('.stpd_cta_btn');
-	await page.click('.stpd_cta_btn');
+	// await page.waitForSelector('.stpd_cta_btn');
+	// await page.click('.stpd_cta_btn');
 	await page.waitForSelector('form#upload-form');
 	const filePath = path.resolve(file);
 	const inputUploadHandle = await page.$('input[type="file"]');
