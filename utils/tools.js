@@ -7,12 +7,8 @@ import path from 'path';
 
 export async function convertWebPtoMP4(file) {
 	const browser = await puppeteer.launch({
-		headless: false,
-		args: [ '--no-sandbox',
-			'--disable-setuid-sandbox',
-			'--disable-dev-shm-usage', // Use `/tmp` for shared memory
-			'--disable-extensions',
-			'--disable-gpu',    ]
+		headless: true,
+		args: ['--no-sandbox', '--disable-setuid-sandbox']
 	});
 	const page = await browser.newPage();
 	await page.goto('https://ezgif.com/webp-to-mp4');
@@ -30,7 +26,7 @@ export async function convertWebPtoMP4(file) {
 	await page.waitForSelector('#output video source');
 	const videoUrl = await page.$eval('#output video source', el => el.getAttribute('src'));
 	const videoDownloadUrl = `https:${videoUrl}`;
-	console.log(videoDownloadUrl)
+	console.log(videoDownloadUrl);
 	await browser.close();
 	return videoDownloadUrl;
 }
