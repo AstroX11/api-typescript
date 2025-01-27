@@ -366,6 +366,10 @@ export async function ForexAfrica() {
 	return await fetchForexData('https://www.tradingview.com/markets/currencies/rates-africa/');
 }
 
+export async function ForexMiddleEast() {
+	return await fetchForexData('https://www.tradingview.com/markets/currencies/rates-middle-east/');
+}
+
 export async function FootballNews() {
 	try {
 		const response = await axios.get('https://onefootball.com/en/home');

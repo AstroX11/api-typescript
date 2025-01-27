@@ -22,6 +22,7 @@ import {
 	ForexEurope,
 	ForexExotic,
 	ForexMajor,
+	ForexMiddleEast,
 	ForexMinor,
 	ForexPacific,
 	getAirQualityForecast,
